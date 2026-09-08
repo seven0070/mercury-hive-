@@ -23,7 +23,7 @@ from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from domain.enums.governance import ApprovalStatus
+from domain.enums.governance import ApprovalStatus, RiskLevel
 from domain.enums.tasks import TaskStatus
 from domain.models.agents import Agent, PermissionGrant
 from domain.models.audit_event import AuditEvent
@@ -36,7 +36,7 @@ from services.agent_runtime.runner import run_agent_cycle
 from services.governance.approvals import create_approval, decide_approval
 from services.identity.tokens import create_agent_token, validate_access_token
 from services.permissions.engine import Decision, authorize
-from services.tools.gateway import execute_tool
+from services.tools.gateway import ToolGatewayError, execute_tool
 
 
 @pytest.mark.asyncio
@@ -63,9 +63,9 @@ async def test_full_owner_to_worker_governed_workflow(
     dept_res = await client.get("/departments", headers=owner_headers)
     assert dept_res.status_code == 200
     depts = dept_res.json()
-    exec_dept = next(d for d in depts if d["name"] == "Executive")
+    exec_dept = next(d for d in depts if d["name"] == "Operations")
     eng_dept = next(d for d in depts if d["name"] == "Engineering")
-    qa_dept = next(d for d in depts if d["name"] == "Quality Assurance")
+    qa_dept = next(d for d in depts if d["name"] == "Judging")
 
     # -------------------------------------------------------------------------
     # Step 3: Provision Digital CEO, HR Executive, and Verifier
@@ -261,13 +261,13 @@ async def test_full_owner_to_worker_governed_workflow(
     assert "Mock sandboxed content" in worker_result.tool_output["content"]
 
     # -------------------------------------------------------------------------
-    # Step 11: Task Completion with Artifacts
+    # Step 11: Task Implementation Done -> Moved to Awaiting Review with Artifacts
     # -------------------------------------------------------------------------
     comp_res = await client.post(
         f"/tasks/{mission_id}/transition",
         headers=owner_headers,
         json={
-            "status": "COMPLETED",
+            "status": "AWAITING_REVIEW",
             "reason": "Telemetry pipeline implemented and verified locally",
             "output_artifacts": {
                 "spec": "Telemetry Engine Spec v1.0",
@@ -276,7 +276,7 @@ async def test_full_owner_to_worker_governed_workflow(
         },
     )
     assert comp_res.status_code == 200
-    assert comp_res.json()["status"] == TaskStatus.COMPLETED.value
+    assert comp_res.json()["status"] == TaskStatus.AWAITING_REVIEW.value
 
     # -------------------------------------------------------------------------
     # Step 12: Independent Verifier Evaluates Work (Conflict Check Enforced)
@@ -316,14 +316,14 @@ async def test_full_owner_to_worker_governed_workflow(
     assert verifier_result.decision.decision == AgentDecisionType.COMPLETE_TASK
     assert verifier_result.decision.output_payload["verified"] is True
 
-    # Transition task to VERIFIED
+    # Transition task from AWAITING_REVIEW to COMPLETED upon successful verification
     verify_trans = await client.post(
         f"/tasks/{mission_id}/transition",
         headers=owner_headers,
-        json={"status": "VERIFIED", "reason": "Verified by independent QA Verifier"},
+        json={"status": "COMPLETED", "reason": "Verified by independent QA Verifier"},
     )
     assert verify_trans.status_code == 200
-    assert verify_trans.json()["status"] == TaskStatus.VERIFIED.value
+    assert verify_trans.json()["status"] == TaskStatus.COMPLETED.value
 
     # -------------------------------------------------------------------------
     # Step 13: Release Queue Approval by System Owner
@@ -332,12 +332,11 @@ async def test_full_owner_to_worker_governed_workflow(
         session=db_session,
         data=ApprovalCreate(
             action_type="RELEASE_PRODUCTION_PIPELINE",
-            risk_level="MEDIUM",
-            target_type="TASK",
+            risk_level=RiskLevel.MEDIUM,
             target_id=mission_id,
-            requestor_id=worker_id,
-            requestor_role="WORKER",
-            payload={"task_id": str(mission_id), "version": "1.0.0"},
+            task_id=mission_id,
+            requested_by=worker_id,
+            reason="Release telemetry pipeline to production",
         ),
     )
     assert approval_entry.status == ApprovalStatus.PENDING
@@ -380,11 +379,12 @@ async def test_full_owner_to_worker_governed_workflow(
         parameters={"path": "policies/constitution.yaml"},
         task_id=mission_id,
     )
-    blocked_exec = await execute_tool(
-        session=db_session,
-        request=blocked_req,
-        actor_id=worker_id,
-        actor_role="WORKER",
-    )
-    assert blocked_exec.status == "BLOCKED"
-    assert "Policy blocked" in (blocked_exec.error_message or "")
+    with pytest.raises(ToolGatewayError) as exc_info:
+        await execute_tool(
+            session=db_session,
+            request=blocked_req,
+            actor_id=worker_id,
+            actor_role="WORKER",
+        )
+    assert exc_info.value.status_code == 403
+    assert "lacking permission grant" in exc_info.value.message

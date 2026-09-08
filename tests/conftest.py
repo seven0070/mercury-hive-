@@ -15,12 +15,13 @@ Environment variables (set by make test or docker-compose.test.yml):
 
 import os
 import uuid
+from collections.abc import AsyncGenerator
 
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import pool, text
-from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
 from apps.api.config import RuntimeSettings
 from apps.api.main import create_app
@@ -159,3 +160,16 @@ async def auth_tokens(client) -> dict:
     )
     assert response.status_code == 200
     return response.json()
+
+
+@pytest_asyncio.fixture
+async def db_session(app) -> AsyncGenerator[AsyncSession, None]:
+    """Provide an async database session for testing."""
+    session_factory = app.state.session_factory
+    async with session_factory() as session:
+        try:
+            yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise

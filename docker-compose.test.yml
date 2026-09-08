@@ -47,6 +47,13 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    volumes:
+      - ./tests:/app/tests:ro
+      - ./apps:/app/apps:ro
+      - ./domain:/app/domain:ro
+      - ./services:/app/services:ro
+      - ./policies:/app/policies:ro
+      - ./scripts:/app/scripts:ro
     environment:
       DATABASE_URL: postgresql+asyncpg://mercury_test_runtime:${TEST_POSTGRES_RUNTIME_PASSWORD:-test_runtime_disposable_pw}@postgres-test:5432/mercury_hive_test
       DATABASE_TEST_URL: postgresql+asyncpg://mercury_test_runtime:${TEST_POSTGRES_RUNTIME_PASSWORD:-test_runtime_disposable_pw}@postgres-test:5432/mercury_hive_test

@@ -131,7 +131,7 @@ async def run_agent_cycle(
                 actor_id=agent.id,
                 actor_role=agent.role,
             )
-            tool_result = exec_record.output_data
+            tool_result = exec_record.result
         except ToolGatewayError as e:
             return AgentExecutionResult(
                 success=False,

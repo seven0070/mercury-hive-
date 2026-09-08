@@ -283,6 +283,8 @@ async def authorize(
         "TEMPORARY_SUB_AGENT",
         "DEPARTMENT_MANAGER",
         "CEO",
+        "VERIFIER",
+        "JUDGE",
     ):
         return AuthorizationResult(
             decision=Decision.ALLOW,
