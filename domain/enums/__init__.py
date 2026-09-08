@@ -7,10 +7,18 @@ from domain.enums.roles import SystemRole
 from domain.enums.tasks import BridgeStatus, TaskPriority, TaskStatus
 from domain.enums.tools import MemoryScope, RollbackStatus, ToolExecutionStatus
 from domain.enums.tribe import SkillProficiency, SyncDirection, SyncStatus
+from domain.enums.workspace import (
+    AttireClass,
+    MeetingRole,
+    MeetingStatus,
+    PresenceState,
+    ZoneType,
+)
 
 __all__ = [
     "AgentStatus",
     "ApprovalStatus",
+    "AttireClass",
     "BridgeStatus",
     "CouncilStatus",
     "DataClassification",
@@ -18,8 +26,11 @@ __all__ = [
     "EvaluationVerdict",
     "EvolutionStatus",
     "EvolutionType",
+    "MeetingRole",
+    "MeetingStatus",
     "MemoryScope",
     "OwnerStatus",
+    "PresenceState",
     "RiskLevel",
     "RollbackStatus",
     "SandboxVerdict",
@@ -31,4 +42,5 @@ __all__ = [
     "TaskPriority",
     "TaskStatus",
     "ToolExecutionStatus",
+    "ZoneType",
 ]

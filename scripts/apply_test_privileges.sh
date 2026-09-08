@@ -105,8 +105,28 @@ GRANT SELECT ON task_sync_mappings TO mercury_test_runtime;
 GRANT INSERT (id, task_id, external_system, external_task_id, sync_direction, sync_status) ON task_sync_mappings TO mercury_test_runtime;
 GRANT UPDATE (sync_direction, sync_status, last_synced_at) ON task_sync_mappings TO mercury_test_runtime;
 
+GRANT SELECT ON workspace_zones TO mercury_test_runtime;
+GRANT INSERT (id, name, zone_type, department_id, capacity, security_level, spatial_bounds, is_active) ON workspace_zones TO mercury_test_runtime;
+GRANT UPDATE (name, capacity, security_level, spatial_bounds, is_active) ON workspace_zones TO mercury_test_runtime;
+
+GRANT SELECT ON avatar_profiles TO mercury_test_runtime;
+GRANT INSERT (id, agent_id, avatar_model_uri, attire_class, customization_payload, is_approved, approved_by) ON avatar_profiles TO mercury_test_runtime;
+GRANT UPDATE (avatar_model_uri, attire_class, customization_payload, is_approved, approved_by, updated_at) ON avatar_profiles TO mercury_test_runtime;
+
+GRANT SELECT ON presence_sessions TO mercury_test_runtime;
+GRANT INSERT (id, entity_id, entity_type, zone_id, position_x, position_y, position_z, rotation_yaw, presence_state, current_task_id, last_heartbeat_at) ON presence_sessions TO mercury_test_runtime;
+GRANT UPDATE (zone_id, position_x, position_y, position_z, rotation_yaw, presence_state, current_task_id, last_heartbeat_at) ON presence_sessions TO mercury_test_runtime;
+
+GRANT SELECT ON virtual_meetings TO mercury_test_runtime;
+GRANT INSERT (id, title, zone_id, host_id, status, agenda, meeting_minutes, scheduled_start, started_at, ended_at) ON virtual_meetings TO mercury_test_runtime;
+GRANT UPDATE (status, agenda, meeting_minutes, started_at, ended_at) ON virtual_meetings TO mercury_test_runtime;
+
+GRANT SELECT ON meeting_participants TO mercury_test_runtime;
+GRANT INSERT (id, meeting_id, entity_id, role_in_meeting, joined_at, left_at) ON meeting_participants TO mercury_test_runtime;
+GRANT UPDATE (left_at) ON meeting_participants TO mercury_test_runtime;
+
 GRANT SELECT ON alembic_version TO mercury_test_runtime;
 GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO mercury_test_runtime;
 SQL
 
-echo "Test privileges applied (Phase 8)."
+echo "Test privileges applied (Phase 10)."

@@ -22,6 +22,13 @@ from domain.models.tools import (
     ToolExecution,
 )
 from domain.models.tribe import AgentSkill, TaskSyncMapping, TribeMapping
+from domain.models.workspace import (
+    AvatarProfile,
+    MeetingParticipant,
+    PresenceSession,
+    VirtualMeeting,
+    WorkspaceZone,
+)
 
 __all__ = [
     "Agent",
@@ -29,6 +36,7 @@ __all__ = [
     "AgentSkill",
     "Approval",
     "AuditEvent",
+    "AvatarProfile",
     "Base",
     "Budget",
     "ConstitutionRecord",
@@ -38,9 +46,11 @@ __all__ = [
     "EvolutionCandidate",
     "JudgeScorecard",
     "JudgingSession",
+    "MeetingParticipant",
     "Owner",
     "OwnerSession",
     "PermissionGrant",
+    "PresenceSession",
     "RefreshToken",
     "RollbackArtifact",
     "Rubric",
@@ -52,4 +62,6 @@ __all__ = [
     "ToolDefinition",
     "ToolExecution",
     "TribeMapping",
+    "VirtualMeeting",
+    "WorkspaceZone",
 ]
