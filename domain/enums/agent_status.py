@@ -1,0 +1,28 @@
+from enum import StrEnum
+
+
+class AgentStatus(StrEnum):
+    PROPOSED = "PROPOSED"
+    SANDBOX = "SANDBOX"
+    PROBATION = "PROBATION"
+    ACTIVE = "ACTIVE"
+    RESTRICTED = "RESTRICTED"
+    SUSPENDED = "SUSPENDED"
+    QUARANTINED = "QUARANTINED"
+    ARCHIVED = "ARCHIVED"
+    TERMINATED = "TERMINATED"
+
+
+class DepartmentStatus(StrEnum):
+    PROPOSED = "PROPOSED"
+    PILOT = "PILOT"
+    ACTIVE = "ACTIVE"
+    SUSPENDED = "SUSPENDED"
+    ARCHIVED = "ARCHIVED"
+
+
+class DataClassification(StrEnum):
+    PUBLIC = "PUBLIC"
+    INTERNAL = "INTERNAL"
+    CONFIDENTIAL = "CONFIDENTIAL"
+    RESTRICTED = "RESTRICTED"

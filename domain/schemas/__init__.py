@@ -1,3 +1,13 @@
+from domain.schemas.agents import (
+    AgentCreate,
+    AgentResponse,
+    AgentStatusChange,
+    AgentUpdate,
+    DepartmentCreate,
+    DepartmentResponse,
+    PermissionGrantCreate,
+    PermissionGrantResponse,
+)
 from domain.schemas.audit import AuditEventCreate, AuditEventResponse
 from domain.schemas.auth import (
     AuthError,
@@ -17,18 +27,26 @@ from domain.schemas.governance import (
 )
 
 __all__ = [
+    "AgentCreate",
+    "AgentResponse",
+    "AgentStatusChange",
+    "AgentUpdate",
     "ApprovalCreate",
     "ApprovalDecisionRequest",
     "ApprovalResponse",
     "AuditEventCreate",
     "AuditEventResponse",
     "AuthError",
+    "DepartmentCreate",
+    "DepartmentResponse",
     "EmergencyShutdownRequest",
     "EmergencyShutdownResponse",
     "LoginRequest",
     "OwnerDashboardResponse",
     "OwnerOverrideRequest",
     "OwnerProfile",
+    "PermissionGrantCreate",
+    "PermissionGrantResponse",
     "RefreshRequest",
     "TokenResponse",
 ]

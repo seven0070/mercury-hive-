@@ -21,6 +21,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 
 from apps.api.config import RuntimeSettings
 from apps.api.database import create_engine, create_session_factory
+from services.agent_registry.router import router as agent_router
 from services.constitution.loader import ConstitutionError, ConstitutionLoader
 from services.governance.router import router as governance_router
 from services.identity.router import router as auth_router
@@ -154,8 +155,9 @@ def create_app() -> FastAPI:
             "constitution_hash": app.state.constitution.sha256_hash[:12],
         }
 
-    # Auth & Governance routes
+    # Auth, Governance, & Agent routes
     app.include_router(auth_router)
     app.include_router(governance_router)
+    app.include_router(agent_router)
 
     return app

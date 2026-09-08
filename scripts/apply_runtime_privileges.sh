@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-echo "=== Applying runtime privileges (Phase 2 Hardened) ==="
+echo "=== Applying runtime privileges (Phase 3) ==="
 
 psql --set=ON_ERROR_STOP=1 <<'SQL'
 
@@ -33,11 +33,9 @@ GRANT UPDATE (used_at) ON refresh_tokens TO mercury_runtime;
 
 -- ============================================================
 -- audit_events: Phase 2 Tamper-Proof Hardening
--- Direct INSERT revoked. Insertion strictly via SECURITY DEFINER function.
 -- ============================================================
 GRANT SELECT ON audit_events TO mercury_runtime;
 GRANT EXECUTE ON FUNCTION fn_record_audit_event TO mercury_runtime;
--- No direct INSERT, no UPDATE, no DELETE on audit_events
 
 -- ============================================================
 -- system_states: emergency shutdown controls
@@ -63,6 +61,27 @@ GRANT UPDATE (status, decision, decided_by, reason, decided_at) ON approvals TO 
 GRANT SELECT ON budgets TO mercury_runtime;
 
 -- ============================================================
+-- departments: Phase 3 department workspaces
+-- ============================================================
+GRANT SELECT ON departments TO mercury_runtime;
+GRANT INSERT (id, name, purpose, status, data_classification, budget, workspace_metadata) ON departments TO mercury_runtime;
+GRANT UPDATE (purpose, status, manager_id, hr_owner_id, budget, workspace_metadata) ON departments TO mercury_runtime;
+
+-- ============================================================
+-- agents: Phase 3 agent registry & lifecycle
+-- ============================================================
+GRANT SELECT ON agents TO mercury_runtime;
+GRANT INSERT (id, display_name, role, department_id, manager_id, status, persona_source, persona_disclosure, system_prompt_version, avatar_profile_id, parent_agent_id) ON agents TO mercury_runtime;
+GRANT UPDATE (display_name, status, persona_disclosure, system_prompt_version, suspended_at, terminated_at, termination_reason) ON agents TO mercury_runtime;
+
+-- ============================================================
+-- permission_grants: Phase 3 scoped authority
+-- ============================================================
+GRANT SELECT ON permission_grants TO mercury_runtime;
+GRANT INSERT (id, agent_id, task_id, department_id, allowed_actions, allowed_tools, memory_scopes, budget_limit, expires_at, approval_requirements, issued_by) ON permission_grants TO mercury_runtime;
+GRANT UPDATE (revoked_at, revocation_reason) ON permission_grants TO mercury_runtime;
+
+-- ============================================================
 -- alembic_version: read-only for runtime
 -- ============================================================
 GRANT SELECT ON alembic_version TO mercury_runtime;
@@ -72,4 +91,4 @@ GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO mercury_runtime;
 
 SQL
 
-echo "Runtime privileges applied successfully (Phase 2)."
+echo "Runtime privileges applied successfully (Phase 3)."
