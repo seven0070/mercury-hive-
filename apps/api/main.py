@@ -24,6 +24,7 @@ from apps.api.database import create_engine, create_session_factory
 from services.agent_registry.router import router as agent_router
 from services.bridges.router import router as bridge_router
 from services.constitution.loader import ConstitutionError, ConstitutionLoader
+from services.evolution.router import router as evolution_router
 from services.governance.router import router as governance_router
 from services.identity.router import router as auth_router
 from services.judging.router import router as judging_router
@@ -171,5 +172,6 @@ def create_app() -> FastAPI:
     app.include_router(memory_router)
     app.include_router(rollback_router)
     app.include_router(judging_router)
+    app.include_router(evolution_router)
 
     return app

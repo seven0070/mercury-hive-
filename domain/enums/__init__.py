@@ -1,4 +1,5 @@
 from domain.enums.agent_status import AgentStatus, DataClassification, DepartmentStatus
+from domain.enums.evolution import EvolutionStatus, EvolutionType, SandboxVerdict
 from domain.enums.governance import ApprovalStatus, RiskLevel, SystemRunState
 from domain.enums.judging import CouncilStatus, EvaluationVerdict
 from domain.enums.owner_status import OwnerStatus
@@ -14,10 +15,13 @@ __all__ = [
     "DataClassification",
     "DepartmentStatus",
     "EvaluationVerdict",
+    "EvolutionStatus",
+    "EvolutionType",
     "MemoryScope",
     "OwnerStatus",
     "RiskLevel",
     "RollbackStatus",
+    "SandboxVerdict",
     "SystemRole",
     "SystemRunState",
     "TaskPriority",

@@ -3,6 +3,7 @@
 from domain.models.agents import Agent, Department, PermissionGrant
 from domain.models.audit_event import AuditEvent
 from domain.models.base import Base
+from domain.models.evolution import EvolutionCandidate, SandboxRun
 from domain.models.governance import Approval, Budget, ConstitutionRecord, SystemState
 from domain.models.judging import (
     EvaluationSubmission,
@@ -32,6 +33,7 @@ __all__ = [
     "CrossDepartmentBridge",
     "Department",
     "EvaluationSubmission",
+    "EvolutionCandidate",
     "JudgeScorecard",
     "JudgingSession",
     "Owner",
@@ -40,6 +42,7 @@ __all__ = [
     "RefreshToken",
     "RollbackArtifact",
     "Rubric",
+    "SandboxRun",
     "SystemState",
     "Task",
     "TaskDelegation",

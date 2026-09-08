@@ -86,8 +86,15 @@ GRANT UPDATE (status, final_verdict, aggregate_score, consensus_notes, closed_at
 GRANT SELECT ON judge_scorecards TO mercury_test_runtime;
 GRANT INSERT (id, session_id, judge_agent_id, scores, total_score, verdict, feedback, conflict_declared, conflict_reason) ON judge_scorecards TO mercury_test_runtime;
 
+GRANT SELECT ON evolution_candidates TO mercury_test_runtime;
+GRANT INSERT (id, title, evolution_type, target_identifier, proposed_change, status, proposer_agent_id, benchmark_results, shadow_traffic_percentage) ON evolution_candidates TO mercury_test_runtime;
+GRANT UPDATE (status, benchmark_results, shadow_traffic_percentage, approved_by, promoted_at, reverted_at, reversion_reason) ON evolution_candidates TO mercury_test_runtime;
+
+GRANT SELECT ON sandbox_runs TO mercury_test_runtime;
+GRANT INSERT (id, candidate_id, test_suite_name, baseline_score, candidate_score, metrics, verdict) ON sandbox_runs TO mercury_test_runtime;
+
 GRANT SELECT ON alembic_version TO mercury_test_runtime;
 GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO mercury_test_runtime;
 SQL
 
-echo "Test privileges applied (Phase 6)."
+echo "Test privileges applied (Phase 7)."

@@ -155,6 +155,19 @@ GRANT SELECT ON judge_scorecards TO mercury_runtime;
 GRANT INSERT (id, session_id, judge_agent_id, scores, total_score, verdict, feedback, conflict_declared, conflict_reason) ON judge_scorecards TO mercury_runtime;
 
 -- ============================================================
+-- evolution_candidates: Phase 7 governed mutation proposals
+-- ============================================================
+GRANT SELECT ON evolution_candidates TO mercury_runtime;
+GRANT INSERT (id, title, evolution_type, target_identifier, proposed_change, status, proposer_agent_id, benchmark_results, shadow_traffic_percentage) ON evolution_candidates TO mercury_runtime;
+GRANT UPDATE (status, benchmark_results, shadow_traffic_percentage, approved_by, promoted_at, reverted_at, reversion_reason) ON evolution_candidates TO mercury_runtime;
+
+-- ============================================================
+-- sandbox_runs: Phase 7 isolated benchmarking
+-- ============================================================
+GRANT SELECT ON sandbox_runs TO mercury_runtime;
+GRANT INSERT (id, candidate_id, test_suite_name, baseline_score, candidate_score, metrics, verdict) ON sandbox_runs TO mercury_runtime;
+
+-- ============================================================
 -- alembic_version: read-only for runtime
 -- ============================================================
 GRANT SELECT ON alembic_version TO mercury_runtime;
@@ -164,4 +177,4 @@ GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO mercury_runtime;
 
 SQL
 
-echo "Runtime privileges applied successfully (Phase 6)."
+echo "Runtime privileges applied successfully (Phase 7)."
