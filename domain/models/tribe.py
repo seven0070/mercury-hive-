@@ -10,6 +10,7 @@ from sqlalchemy import (
     ForeignKey,
     String,
     UniqueConstraint,
+    Uuid,
     text,
 )
 from sqlalchemy.orm import Mapped, mapped_column
@@ -95,6 +96,7 @@ class AgentSkill(Base):
     )
     verified_by: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("agents.id", ondelete="SET NULL"),
+        Uuid(as_uuid=True),
         nullable=True,
     )
     created_at: Mapped[datetime] = mapped_column(
@@ -164,3 +166,4 @@ class TaskSyncMapping(Base):
             name="uq_task_sync_system_task",
         ),
     )
+

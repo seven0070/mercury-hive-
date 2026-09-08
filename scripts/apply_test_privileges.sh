@@ -8,16 +8,16 @@ REVOKE ALL ON ALL TABLES IN SCHEMA public FROM mercury_test_runtime;
 REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM mercury_test_runtime;
 REVOKE ALL ON ALL FUNCTIONS IN SCHEMA public FROM mercury_test_runtime;
 
-GRANT SELECT (id, email, password_hash, status, created_at, last_login_at)
+GRANT SELECT (id, singleton, email, password_hash, status, created_at, last_login_at)
   ON owners TO mercury_test_runtime;
 GRANT UPDATE (last_login_at) ON owners TO mercury_test_runtime;
 
 GRANT SELECT ON owner_sessions TO mercury_test_runtime;
-GRANT INSERT (id, owner_id, expires_at) ON owner_sessions TO mercury_test_runtime;
+GRANT INSERT (id, owner_id, created_at, expires_at, revoked_at, revocation_reason) ON owner_sessions TO mercury_test_runtime;
 GRANT UPDATE (revoked_at, revocation_reason) ON owner_sessions TO mercury_test_runtime;
 
 GRANT SELECT ON refresh_tokens TO mercury_test_runtime;
-GRANT INSERT (id, session_id, token_hash, expires_at) ON refresh_tokens TO mercury_test_runtime;
+GRANT INSERT (id, session_id, token_hash, created_at, expires_at, used_at) ON refresh_tokens TO mercury_test_runtime;
 GRANT UPDATE (used_at) ON refresh_tokens TO mercury_test_runtime;
 
 GRANT SELECT ON audit_events TO mercury_test_runtime;
@@ -29,88 +29,91 @@ GRANT UPDATE (run_state, shutdown_reason, updated_by, updated_at) ON system_stat
 GRANT SELECT ON constitution_records TO mercury_test_runtime;
 
 GRANT SELECT ON approvals TO mercury_test_runtime;
-GRANT INSERT (id, action_type, requested_by, task_id, target_id, risk_level, status, reason) ON approvals TO mercury_test_runtime;
+GRANT INSERT (id, action_type, requested_by, task_id, target_id, risk_level, status, decision, decided_by, reason, created_at, decided_at) ON approvals TO mercury_test_runtime;
 GRANT UPDATE (status, decision, decided_by, reason, decided_at) ON approvals TO mercury_test_runtime;
 
 GRANT SELECT ON budgets TO mercury_test_runtime;
+GRANT INSERT (id, department_id, allocated_amount, spent_amount, currency, reset_period, created_at, updated_at) ON budgets TO mercury_test_runtime;
+GRANT UPDATE (allocated_amount, spent_amount, reset_period, updated_at) ON budgets TO mercury_test_runtime;
 
 GRANT SELECT ON departments TO mercury_test_runtime;
-GRANT INSERT (id, name, purpose, status, data_classification, budget, workspace_metadata) ON departments TO mercury_test_runtime;
+GRANT INSERT (id, name, purpose, status, manager_id, hr_owner_id, data_classification, budget, workspace_metadata, created_at) ON departments TO mercury_test_runtime;
 GRANT UPDATE (purpose, status, manager_id, hr_owner_id, budget, workspace_metadata) ON departments TO mercury_test_runtime;
 
 GRANT SELECT ON agents TO mercury_test_runtime;
-GRANT INSERT (id, display_name, role, department_id, manager_id, status, persona_source, persona_disclosure, system_prompt_version, avatar_profile_id, parent_agent_id) ON agents TO mercury_test_runtime;
+GRANT INSERT (id, display_name, role, department_id, manager_id, status, persona_source, persona_disclosure, system_prompt_version, avatar_profile_id, parent_agent_id, created_at, suspended_at, terminated_at, termination_reason) ON agents TO mercury_test_runtime;
 GRANT UPDATE (display_name, status, persona_disclosure, system_prompt_version, suspended_at, terminated_at, termination_reason) ON agents TO mercury_test_runtime;
 
 GRANT SELECT ON permission_grants TO mercury_test_runtime;
-GRANT INSERT (id, agent_id, task_id, department_id, allowed_actions, allowed_tools, memory_scopes, budget_limit, expires_at, approval_requirements, issued_by) ON permission_grants TO mercury_test_runtime;
+GRANT INSERT (id, agent_id, task_id, department_id, allowed_actions, allowed_tools, memory_scopes, budget_limit, expires_at, approval_requirements, issued_by, created_at, revoked_at, revocation_reason) ON permission_grants TO mercury_test_runtime;
 GRANT UPDATE (revoked_at, revocation_reason) ON permission_grants TO mercury_test_runtime;
 
 GRANT SELECT ON tasks TO mercury_test_runtime;
-GRANT INSERT (id, title, description, priority, status, origin_department_id, assigned_department_id, assigned_agent_id, created_by, parent_task_id, required_capabilities, input_artifacts, output_artifacts, budget_allocated, budget_spent, deadline) ON tasks TO mercury_test_runtime;
+GRANT INSERT (id, title, description, priority, status, origin_department_id, assigned_department_id, assigned_agent_id, created_by, parent_task_id, required_capabilities, input_artifacts, output_artifacts, budget_allocated, budget_spent, deadline, created_at, updated_at, completed_at) ON tasks TO mercury_test_runtime;
 GRANT UPDATE (title, description, priority, status, assigned_agent_id, required_capabilities, input_artifacts, output_artifacts, budget_allocated, budget_spent, deadline, completed_at, updated_at) ON tasks TO mercury_test_runtime;
 
 GRANT SELECT ON cross_department_bridges TO mercury_test_runtime;
-GRANT INSERT (id, source_department_id, target_department_id, purpose, status, allowed_data_classification, data_sharing_scopes, requested_by, approved_by, expires_at) ON cross_department_bridges TO mercury_test_runtime;
+GRANT INSERT (id, source_department_id, target_department_id, purpose, status, allowed_data_classification, data_sharing_scopes, requested_by, approved_by, expires_at, created_at, revoked_at, revocation_reason) ON cross_department_bridges TO mercury_test_runtime;
 GRANT UPDATE (status, approved_by, revoked_at, revocation_reason) ON cross_department_bridges TO mercury_test_runtime;
 
 GRANT SELECT ON task_delegations TO mercury_test_runtime;
-GRANT INSERT (id, task_id, bridge_id, delegated_from_agent_id, delegated_to_agent_id, notes) ON task_delegations TO mercury_test_runtime;
+GRANT INSERT (id, task_id, bridge_id, delegated_from_agent_id, delegated_to_agent_id, notes, created_at) ON task_delegations TO mercury_test_runtime;
 
 GRANT SELECT ON tool_definitions TO mercury_test_runtime;
-GRANT INSERT (id, name, description, risk_level, schema_definition, is_enabled, requires_approval) ON tool_definitions TO mercury_test_runtime;
+GRANT INSERT (id, name, description, risk_level, schema_definition, is_enabled, requires_approval, created_at) ON tool_definitions TO mercury_test_runtime;
 GRANT UPDATE (description, risk_level, schema_definition, is_enabled, requires_approval) ON tool_definitions TO mercury_test_runtime;
 
 GRANT SELECT ON tool_executions TO mercury_test_runtime;
-GRANT INSERT (id, tool_name, agent_id, task_id, status, parameters, result, error_message, execution_duration_ms) ON tool_executions TO mercury_test_runtime;
+GRANT INSERT (id, tool_name, agent_id, task_id, status, parameters, result, error_message, execution_duration_ms, created_at) ON tool_executions TO mercury_test_runtime;
+GRANT UPDATE (status, result, error_message, execution_duration_ms) ON tool_executions TO mercury_test_runtime;
 
 GRANT SELECT ON agent_memories TO mercury_test_runtime;
-GRANT INSERT (id, agent_id, scope, scope_id, key, value, data_classification, version) ON agent_memories TO mercury_test_runtime;
+GRANT INSERT (id, agent_id, scope, scope_id, key, value, data_classification, version, created_at, updated_at) ON agent_memories TO mercury_test_runtime;
 GRANT UPDATE (value, data_classification, version, updated_at) ON agent_memories TO mercury_test_runtime;
 
 GRANT SELECT ON rollback_artifacts TO mercury_test_runtime;
-GRANT INSERT (id, task_id, agent_id, tool_name, target_resource, previous_state, new_state, status) ON rollback_artifacts TO mercury_test_runtime;
+GRANT INSERT (id, task_id, agent_id, tool_name, target_resource, previous_state, new_state, status, created_at, reverted_at, reverted_by) ON rollback_artifacts TO mercury_test_runtime;
 GRANT UPDATE (status, reverted_at, reverted_by) ON rollback_artifacts TO mercury_test_runtime;
 
 GRANT SELECT ON rubrics TO mercury_test_runtime;
-GRANT INSERT (id, name, version, description, criteria, minimum_passing_score, is_active) ON rubrics TO mercury_test_runtime;
+GRANT INSERT (id, name, version, description, criteria, minimum_passing_score, is_active, created_at) ON rubrics TO mercury_test_runtime;
 GRANT UPDATE (description, criteria, minimum_passing_score, is_active) ON rubrics TO mercury_test_runtime;
 
 GRANT SELECT ON evaluation_submissions TO mercury_test_runtime;
-GRANT INSERT (id, task_id, author_agent_id, title, deliverable_payload) ON evaluation_submissions TO mercury_test_runtime;
+GRANT INSERT (id, task_id, author_agent_id, title, deliverable_payload, submitted_at) ON evaluation_submissions TO mercury_test_runtime;
 
 GRANT SELECT ON judging_sessions TO mercury_test_runtime;
-GRANT INSERT (id, submission_id, rubric_id, status, required_judges, final_verdict, aggregate_score, consensus_notes) ON judging_sessions TO mercury_test_runtime;
+GRANT INSERT (id, submission_id, rubric_id, status, required_judges, final_verdict, aggregate_score, consensus_notes, created_at, closed_at) ON judging_sessions TO mercury_test_runtime;
 GRANT UPDATE (status, final_verdict, aggregate_score, consensus_notes, closed_at) ON judging_sessions TO mercury_test_runtime;
 
 GRANT SELECT ON judge_scorecards TO mercury_test_runtime;
-GRANT INSERT (id, session_id, judge_agent_id, scores, total_score, verdict, feedback, conflict_declared, conflict_reason) ON judge_scorecards TO mercury_test_runtime;
+GRANT INSERT (id, session_id, judge_agent_id, scores, total_score, verdict, feedback, conflict_declared, conflict_reason, submitted_at) ON judge_scorecards TO mercury_test_runtime;
 
 GRANT SELECT ON evolution_candidates TO mercury_test_runtime;
-GRANT INSERT (id, title, evolution_type, target_identifier, proposed_change, status, proposer_agent_id, benchmark_results, shadow_traffic_percentage) ON evolution_candidates TO mercury_test_runtime;
+GRANT INSERT (id, title, evolution_type, target_identifier, proposed_change, status, proposer_agent_id, benchmark_results, shadow_traffic_percentage, created_at, approved_by, promoted_at, reverted_at, reversion_reason) ON evolution_candidates TO mercury_test_runtime;
 GRANT UPDATE (status, benchmark_results, shadow_traffic_percentage, approved_by, promoted_at, reverted_at, reversion_reason) ON evolution_candidates TO mercury_test_runtime;
 
 GRANT SELECT ON sandbox_runs TO mercury_test_runtime;
-GRANT INSERT (id, candidate_id, test_suite_name, baseline_score, candidate_score, metrics, verdict) ON sandbox_runs TO mercury_test_runtime;
+GRANT INSERT (id, candidate_id, test_suite_name, baseline_score, candidate_score, metrics, verdict, executed_at) ON sandbox_runs TO mercury_test_runtime;
 
 GRANT SELECT ON tribe_mappings TO mercury_test_runtime;
-GRANT INSERT (id, department_id, tribe_name, squad_name, external_team_id, sync_status) ON tribe_mappings TO mercury_test_runtime;
+GRANT INSERT (id, department_id, tribe_name, squad_name, external_team_id, sync_status, created_at, updated_at) ON tribe_mappings TO mercury_test_runtime;
 GRANT UPDATE (tribe_name, squad_name, external_team_id, sync_status, updated_at) ON tribe_mappings TO mercury_test_runtime;
 
 GRANT SELECT ON agent_skills TO mercury_test_runtime;
-GRANT INSERT (id, agent_id, skill_name, proficiency_level, is_verified, verified_by) ON agent_skills TO mercury_test_runtime;
+GRANT INSERT (id, agent_id, skill_name, proficiency_level, is_verified, verified_by, created_at) ON agent_skills TO mercury_test_runtime;
 GRANT UPDATE (proficiency_level, is_verified, verified_by) ON agent_skills TO mercury_test_runtime;
 
 GRANT SELECT ON task_sync_mappings TO mercury_test_runtime;
-GRANT INSERT (id, task_id, external_system, external_task_id, sync_direction, sync_status) ON task_sync_mappings TO mercury_test_runtime;
+GRANT INSERT (id, task_id, external_system, external_task_id, sync_direction, sync_status, last_synced_at) ON task_sync_mappings TO mercury_test_runtime;
 GRANT UPDATE (sync_direction, sync_status, last_synced_at) ON task_sync_mappings TO mercury_test_runtime;
 
 GRANT SELECT ON workspace_zones TO mercury_test_runtime;
-GRANT INSERT (id, name, zone_type, department_id, capacity, security_level, spatial_bounds, is_active) ON workspace_zones TO mercury_test_runtime;
+GRANT INSERT (id, name, zone_type, department_id, capacity, security_level, spatial_bounds, is_active, created_at) ON workspace_zones TO mercury_test_runtime;
 GRANT UPDATE (name, capacity, security_level, spatial_bounds, is_active) ON workspace_zones TO mercury_test_runtime;
 
 GRANT SELECT ON avatar_profiles TO mercury_test_runtime;
-GRANT INSERT (id, agent_id, avatar_model_uri, attire_class, customization_payload, is_approved, approved_by) ON avatar_profiles TO mercury_test_runtime;
+GRANT INSERT (id, agent_id, avatar_model_uri, attire_class, customization_payload, is_approved, approved_by, created_at, updated_at) ON avatar_profiles TO mercury_test_runtime;
 GRANT UPDATE (avatar_model_uri, attire_class, customization_payload, is_approved, approved_by, updated_at) ON avatar_profiles TO mercury_test_runtime;
 
 GRANT SELECT ON presence_sessions TO mercury_test_runtime;

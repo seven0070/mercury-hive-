@@ -81,3 +81,4 @@ class RollbackRequest(BaseModel):
     """Schema for rolling back a promoted or shadow-deployed candidate."""
 
     reason: str = Field(min_length=3, max_length=1000)
+

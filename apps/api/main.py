@@ -60,18 +60,25 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         raise SystemExit(1) from e
 
     # 2. Create primary database engine (runtime credentials only)
-    engine = create_engine(settings.database_url)
+    from sqlalchemy.pool import NullPool
+
+    is_test = "test" in settings.database_url
+    engine = create_engine(
+        settings.database_url,
+        poolclass=NullPool if is_test else None,
+    )
     session_factory = create_session_factory(engine)
     app.state.engine = engine
     app.state.session_factory = session_factory
 
     # 3. Create dedicated persistent audit engine to avoid connection churn
-    audit_engine = create_async_engine(
-        settings.database_url,
-        pool_size=2,
-        max_overflow=0,
-        pool_pre_ping=True,
-    )
+    audit_kwargs = {"pool_pre_ping": True}
+    if is_test:
+        audit_kwargs["poolclass"] = NullPool
+    else:
+        audit_kwargs["pool_size"] = 2
+        audit_kwargs["max_overflow"] = 0
+    audit_engine = create_async_engine(settings.database_url, **audit_kwargs)
     app.state.audit_engine = audit_engine
 
     # 4. Verify database connectivity

@@ -72,7 +72,7 @@ async def log_audit_event(
         text(
             "SELECT fn_record_audit_event("
             ":event_type, :actor_id, :actor_role, :target_type, :target_id, "
-            ":action, :decision, :reason, :payload::jsonb, :correlation_id)"
+            ":action, :decision, :reason, CAST(:payload AS jsonb), :correlation_id)"
         ),
         {
             "event_type": data["event_type"],
@@ -119,7 +119,7 @@ async def log_audit_event_independent(
                 text(
                     "SELECT fn_record_audit_event("
                     ":event_type, :actor_id, :actor_role, :target_type, :target_id, "
-                    ":action, :decision, :reason, :payload::jsonb, :correlation_id)"
+                    ":action, :decision, :reason, CAST(:payload AS jsonb), :correlation_id)"
                 ),
                 {
                     "event_type": data["event_type"],

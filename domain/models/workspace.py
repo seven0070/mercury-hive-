@@ -292,3 +292,4 @@ class MeetingParticipant(Base):
             name="ck_meeting_participants_role",
         ),
     )
+

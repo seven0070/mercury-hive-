@@ -247,6 +247,7 @@ async def schedule_meeting(
         scheduled_start=data.scheduled_start,
     )
     session.add(meeting)
+    await session.flush()
 
     participant = MeetingParticipant(
         id=uuid.uuid4(),

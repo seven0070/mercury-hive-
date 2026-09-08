@@ -12,6 +12,7 @@ Forward-only migration. Creates:
 - meeting_participants table (meeting attendees & roles)
 """
 
+import json
 from collections.abc import Sequence
 
 import sqlalchemy as sa
@@ -101,13 +102,13 @@ def upgrade() -> None:
             sa.text(
                 "INSERT INTO workspace_zones "
                 "(id, name, zone_type, capacity, security_level, spatial_bounds) "
-                "VALUES (gen_random_uuid(), :name, :z_type, :cap, :sec, :bounds::jsonb)"
+                "VALUES (gen_random_uuid(), :name, :z_type, :cap, :sec, CAST(:bounds AS jsonb))"
             ).bindparams(
                 name=name,
                 z_type=z_type,
                 cap=cap,
                 sec=sec,
-                bounds=sa.dialects.postgresql.json.dumps(bounds),
+                bounds=json.dumps(bounds),
             )
         )
 

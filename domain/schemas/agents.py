@@ -119,3 +119,4 @@ class PermissionGrantResponse(BaseModel):
     revocation_reason: str | None
 
     model_config = {"from_attributes": True}
+

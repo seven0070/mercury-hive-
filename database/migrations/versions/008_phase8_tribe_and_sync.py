@@ -193,3 +193,4 @@ def downgrade() -> None:
     op.drop_table("task_sync_mappings")
     op.drop_table("agent_skills")
     op.drop_table("tribe_mappings")
+

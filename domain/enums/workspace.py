@@ -48,3 +48,4 @@ class MeetingRole(StrEnum):
     SPEAKER = "SPEAKER"
     ATTENDEE = "ATTENDEE"
     OBSERVER = "OBSERVER"
+

@@ -24,3 +24,4 @@ class SandboxVerdict(StrEnum):
     PASSED = "PASSED"
     REGRESSED = "REGRESSED"
     FAILED = "FAILED"
+

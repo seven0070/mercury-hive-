@@ -15,13 +15,12 @@ from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
 
 from apps.api.config import RuntimeSettings
-from domain.models.audit_event import AuditEvent
 from domain.models.owner import Owner
 from domain.models.refresh_token import RefreshToken
 from domain.models.session import OwnerSession
 from domain.schemas.audit import AuditEventCreate
 from domain.schemas.auth import LoginRequest, OwnerProfile, RefreshRequest, TokenResponse
-from services.audit.service import log_audit_event_independent
+from services.audit.service import log_audit_event, log_audit_event_independent
 from services.identity.hashing import needs_rehash, verify_password
 from services.identity.tokens import (
     create_access_token,
@@ -68,18 +67,20 @@ async def _log_audit(
     target_id: uuid.UUID | None = None,
     correlation_id: uuid.UUID | None = None,
 ) -> None:
-    """Log audit event within the current transaction."""
-    event = AuditEvent(
-        event_type=event_type,
-        actor_id=actor_id,
-        actor_role="OWNER",
-        action=action,
-        decision=decision,
-        reason=reason,
-        target_id=target_id,
-        correlation_id=correlation_id,
+    """Log audit event within the current transaction via fn_record_audit_event."""
+    await log_audit_event(
+        session,
+        AuditEventCreate(
+            event_type=event_type,
+            actor_id=actor_id,
+            actor_role="OWNER",
+            action=action,
+            decision=decision,
+            reason=reason,
+            target_id=target_id,
+            correlation_id=correlation_id,
+        ),
     )
-    session.add(event)
 
 
 class AuthenticationError(Exception):

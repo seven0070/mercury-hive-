@@ -13,14 +13,13 @@ Environment variables (set by make test or docker-compose.test.yml):
 - CONSTITUTION_PATH: path to constitution.yaml
 """
 
-import asyncio
 import os
 import uuid
 
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy import text
+from sqlalchemy import pool, text
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from apps.api.config import RuntimeSettings
@@ -33,34 +32,59 @@ TEST_OWNER_PASSWORD = "test-password-long-enough-16"
 TEST_JWT_SECRET = "test-disposable-secret-key-32-chars-long"
 
 
-@pytest.fixture(scope="session")
-def event_loop():
-    """Create session-scoped event loop."""
-    loop = asyncio.new_event_loop()
-    yield loop
-    loop.close()
-
-
-@pytest_asyncio.fixture(scope="session")
+@pytest_asyncio.fixture
 async def admin_engine():
     """Admin engine for test setup (create owner, etc.)."""
     url = os.environ.get(
         "DATABASE_TEST_ADMIN_URL",
         "postgresql+asyncpg://mercury_test_admin:test_admin_disposable_pw@postgres-test:5432/mercury_hive_test",
     )
-    engine = create_async_engine(url, pool_size=2)
+    engine = create_async_engine(url, poolclass=pool.NullPool)
     yield engine
     await engine.dispose()
 
 
-@pytest_asyncio.fixture(scope="session")
+@pytest_asyncio.fixture
 async def test_owner_id(admin_engine) -> uuid.UUID:
     """Create test owner using admin credentials. Returns owner ID."""
     owner_id = uuid.uuid4()
     password_hash_value = hash_password(TEST_OWNER_PASSWORD)
 
     async with admin_engine.begin() as conn:
-        # Clean up any existing test owner
+        # Clean up transient test-created data
+        await conn.execute(text("DELETE FROM meeting_participants"))
+        await conn.execute(text("DELETE FROM virtual_meetings"))
+        await conn.execute(text("DELETE FROM presence_sessions"))
+        await conn.execute(text("DELETE FROM avatar_profiles"))
+        await conn.execute(text("DELETE FROM workspace_zones WHERE department_id IS NOT NULL"))
+        await conn.execute(text("DELETE FROM task_sync_mappings"))
+        await conn.execute(text("DELETE FROM agent_skills"))
+        await conn.execute(text("DELETE FROM tribe_mappings"))
+        await conn.execute(text("DELETE FROM sandbox_runs"))
+        await conn.execute(text("DELETE FROM evolution_candidates"))
+        await conn.execute(text("DELETE FROM judge_scorecards"))
+        await conn.execute(text("DELETE FROM judging_sessions"))
+        await conn.execute(text("DELETE FROM evaluation_submissions"))
+        await conn.execute(text("DELETE FROM rollback_artifacts"))
+        await conn.execute(text("DELETE FROM agent_memories"))
+        await conn.execute(text("DELETE FROM tool_executions"))
+        await conn.execute(
+            text(
+                "DELETE FROM tool_definitions WHERE name NOT IN "
+                "('file_reader', 'file_writer', 'memory_store', 'memory_fetch', 'system_inspector')"
+            )
+        )
+        await conn.execute(text("DELETE FROM task_delegations"))
+        await conn.execute(text("DELETE FROM cross_department_bridges"))
+        await conn.execute(text("DELETE FROM tasks"))
+        await conn.execute(text("DELETE FROM permission_grants"))
+        await conn.execute(text("DELETE FROM agents"))
+        await conn.execute(text("DELETE FROM approvals"))
+        await conn.execute(
+            text(
+                "DELETE FROM departments WHERE status = 'PROPOSED' OR name LIKE 'Special Projects%'"
+            )
+        )
         await conn.execute(text("DELETE FROM refresh_tokens"))
         await conn.execute(text("DELETE FROM owner_sessions"))
         await conn.execute(text("DELETE FROM audit_events"))
@@ -106,13 +130,14 @@ def settings() -> RuntimeSettings:
 
 @pytest_asyncio.fixture
 async def app(settings, test_owner_id):
-    """Create test FastAPI application."""
+    """Create test FastAPI application with lifespan context."""
     os.environ["DATABASE_URL"] = settings.database_url
     os.environ["JWT_SECRET_KEY"] = settings.jwt_secret_key
     os.environ["CONSTITUTION_PATH"] = settings.constitution_path
 
     application = create_app()
-    yield application
+    async with application.router.lifespan_context(application):
+        yield application
 
 
 @pytest_asyncio.fixture

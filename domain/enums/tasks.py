@@ -27,3 +27,4 @@ class BridgeStatus(StrEnum):
     ACTIVE = "ACTIVE"
     REVOKED = "REVOKED"
     EXPIRED = "EXPIRED"
+

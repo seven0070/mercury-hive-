@@ -31,7 +31,7 @@ async def test_department_and_agent_api_lifecycle(client: AsyncClient, auth_toke
         json={
             "name": new_dept_name,
             "purpose": "Experimental skunkworks initiative",
-            "data_classification": "SECRET",
+            "data_classification": "RESTRICTED",
             "budget": 250000.0,
         },
     )

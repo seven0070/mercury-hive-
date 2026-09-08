@@ -1,6 +1,6 @@
 [build-system]
 requires = ["hatchling"]
-build-backend = "hatchling.backends"
+build-backend = "hatchling.build"
 
 [project]
 name = "mercury-hive"
@@ -36,6 +36,7 @@ dev = [
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
 testpaths = ["tests"]
 filterwarnings = [
     "ignore::DeprecationWarning",
@@ -66,3 +67,6 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S101", "S105", "S106"]
 "scripts/**" = ["S101", "S105", "S106", "S603", "S607"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["apps", "services", "domain", "policies", "database", "scripts"]

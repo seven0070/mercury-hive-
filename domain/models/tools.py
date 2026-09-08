@@ -186,10 +186,7 @@ class AgentMemory(Base):
             name="ck_memory_valid_classification",
         ),
         UniqueConstraint(
-            "agent_id",
-            "scope",
-            "scope_id",
-            "key",
+            "agent_id", "scope", "scope_id", "key",
             name="uq_agent_memory_scoped_key",
         ),
     )
@@ -252,3 +249,4 @@ class RollbackArtifact(Base):
             name="ck_rollback_valid_status",
         ),
     )
+

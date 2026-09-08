@@ -6,6 +6,7 @@ Admin operations (migrations, bootstrap) use separate services.
 
 from collections.abc import AsyncGenerator
 
+from sqlalchemy import pool
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -14,8 +15,17 @@ from sqlalchemy.ext.asyncio import (
 )
 
 
-def create_engine(database_url: str) -> AsyncEngine:
-    """Create async engine with production connection pooling."""
+def create_engine(
+    database_url: str,
+    poolclass: type[pool.Pool] | None = None,
+) -> AsyncEngine:
+    """Create async engine with connection pooling."""
+    if poolclass is not None:
+        return create_async_engine(
+            database_url,
+            echo=False,
+            poolclass=poolclass,
+        )
     return create_async_engine(
         database_url,
         echo=False,

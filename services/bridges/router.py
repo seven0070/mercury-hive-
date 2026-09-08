@@ -111,3 +111,4 @@ async def api_revoke_bridge(
         return BridgeResponse.model_validate(bridge)
     except BridgeError as e:
         raise HTTPException(status_code=400, detail=e.message) from e
+

@@ -151,3 +151,4 @@ async def suspend_department(
         ),
     )
     return dept
+

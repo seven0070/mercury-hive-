@@ -104,3 +104,4 @@ class RollbackResponse(BaseModel):
     reverted_by: uuid.UUID | None
 
     model_config = {"from_attributes": True}
+

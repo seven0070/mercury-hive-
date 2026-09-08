@@ -107,3 +107,4 @@ class ScorecardResponse(BaseModel):
     submitted_at: datetime
 
     model_config = {"from_attributes": True}
+
