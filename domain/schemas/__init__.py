@@ -31,6 +31,7 @@ from domain.schemas.governance import (
     ApprovalResponse,
     EmergencyShutdownRequest,
     EmergencyShutdownResponse,
+    OwnerConsoleSummary,
     OwnerDashboardResponse,
     OwnerOverrideRequest,
 )
@@ -104,6 +105,7 @@ __all__ = [
     "JudgingSessionCreate",
     "JudgingSessionResponse",
     "LoginRequest",
+    "OwnerConsoleSummary",
     "OwnerDashboardResponse",
     "OwnerOverrideRequest",
     "OwnerProfile",

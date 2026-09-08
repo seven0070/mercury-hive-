@@ -8,9 +8,14 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from apps.api.dependencies import AuthenticatedOwner, get_current_owner, get_db
+from domain.enums.agent_status import AgentStatus
 from domain.enums.governance import ApprovalStatus, SystemRunState
+from domain.enums.tasks import BridgeStatus, TaskStatus
+from domain.models.agents import Agent, Department
 from domain.models.audit_event import AuditEvent
+from domain.models.evolution import EvolutionCandidate
 from domain.models.governance import Approval, ConstitutionRecord
+from domain.models.tasks import CrossDepartmentBridge, Task
 from domain.schemas.audit import AuditEventResponse
 from domain.schemas.governance import (
     ApprovalCreate,
@@ -18,6 +23,7 @@ from domain.schemas.governance import (
     ApprovalResponse,
     EmergencyShutdownRequest,
     EmergencyShutdownResponse,
+    OwnerConsoleSummary,
     OwnerDashboardResponse,
     OwnerOverrideRequest,
 )
@@ -106,6 +112,81 @@ async def api_owner_dashboard(
         constitution_policy_version=constitution.policy_version if constitution else 1,
         constitution_hash=constitution.sha256_hash if constitution else "",
         recent_audit_count=audit_count,
+    )
+
+
+@router.get("/owner/console/summary", response_model=OwnerConsoleSummary)
+async def api_owner_console_summary(
+    session: Annotated[AsyncSession, Depends(get_db)],
+    owner: Annotated[AuthenticatedOwner, Depends(get_current_owner)],
+) -> OwnerConsoleSummary:
+    """Retrieve full executive snapshot for the Web Owner Console."""
+    state = await get_system_state(session)
+
+    # Pending approvals
+    appr_res = await session.execute(
+        select(func.count(Approval.id)).where(Approval.status == ApprovalStatus.PENDING)
+    )
+    pending_count = appr_res.scalar_one() or 0
+
+    # Active & Suspended agents
+    act_res = await session.execute(
+        select(func.count(Agent.id)).where(Agent.status == AgentStatus.ACTIVE.value)
+    )
+    active_agents = act_res.scalar_one() or 0
+
+    susp_res = await session.execute(
+        select(func.count(Agent.id)).where(Agent.status == AgentStatus.SUSPENDED.value)
+    )
+    suspended_agents = susp_res.scalar_one() or 0
+
+    # Departments
+    dept_res = await session.execute(select(func.count(Department.id)))
+    departments_count = dept_res.scalar_one() or 0
+
+    # Active tasks
+    task_res = await session.execute(
+        select(func.count(Task.id)).where(
+            Task.status.in_([TaskStatus.ASSIGNED.value, TaskStatus.IN_PROGRESS.value])
+        )
+    )
+    active_tasks = task_res.scalar_one() or 0
+
+    # Active bridges
+    bridge_res = await session.execute(
+        select(func.count(CrossDepartmentBridge.id)).where(
+            CrossDepartmentBridge.status == BridgeStatus.ACTIVE.value
+        )
+    )
+    active_bridges = bridge_res.scalar_one() or 0
+
+    # Evolution candidates
+    cand_res = await session.execute(select(func.count(EvolutionCandidate.id)))
+    candidates_count = cand_res.scalar_one() or 0
+
+    # Constitution
+    c_result = await session.execute(
+        select(ConstitutionRecord).where(ConstitutionRecord.is_active.is_(True))
+    )
+    constitution = c_result.scalar_one_or_none()
+
+    # Audit count
+    a_result = await session.execute(select(func.count(AuditEvent.id)))
+    audit_count = a_result.scalar_one() or 0
+
+    return OwnerConsoleSummary(
+        system_run_state=SystemRunState(state.run_state),
+        shutdown_reason=state.shutdown_reason,
+        pending_approvals_count=pending_count,
+        active_agents_count=active_agents,
+        suspended_agents_count=suspended_agents,
+        departments_count=departments_count,
+        active_tasks_count=active_tasks,
+        active_bridges_count=active_bridges,
+        evolution_candidates_count=candidates_count,
+        recent_audit_count=audit_count,
+        constitution_policy_version=constitution.policy_version if constitution else 1,
+        constitution_hash=constitution.sha256_hash if constitution else "",
     )
 
 

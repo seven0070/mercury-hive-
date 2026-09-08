@@ -77,3 +77,20 @@ class OwnerDashboardResponse(BaseModel):
     constitution_policy_version: int
     constitution_hash: str
     recent_audit_count: int
+
+
+class OwnerConsoleSummary(BaseModel):
+    """Aggregated executive summary for the Web Owner Console."""
+
+    system_run_state: SystemRunState
+    shutdown_reason: str | None
+    pending_approvals_count: int
+    active_agents_count: int
+    suspended_agents_count: int
+    departments_count: int
+    active_tasks_count: int
+    active_bridges_count: int
+    evolution_candidates_count: int
+    recent_audit_count: int
+    constitution_policy_version: int
+    constitution_hash: str
