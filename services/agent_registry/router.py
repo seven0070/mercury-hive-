@@ -327,4 +327,3 @@ async def api_list_agent_grants(
     """List all permission grants for an agent."""
     grants = await list_agent_grants(session, agent_id)
     return [PermissionGrantResponse.model_validate(g) for g in grants]
-

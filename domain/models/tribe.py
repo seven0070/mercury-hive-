@@ -95,7 +95,6 @@ class AgentSkill(Base):
         nullable=False,
     )
     verified_by: Mapped[uuid.UUID | None] = mapped_column(
-        ForeignKey("agents.id", ondelete="SET NULL"),
         Uuid(as_uuid=True),
         nullable=True,
     )
@@ -166,4 +165,3 @@ class TaskSyncMapping(Base):
             name="uq_task_sync_system_task",
         ),
     )
-

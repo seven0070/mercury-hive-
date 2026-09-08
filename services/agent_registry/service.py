@@ -376,4 +376,3 @@ async def list_agent_grants(
         .order_by(PermissionGrant.created_at.desc())
     )
     return list(res.scalars().all())
-

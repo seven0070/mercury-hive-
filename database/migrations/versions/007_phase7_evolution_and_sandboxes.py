@@ -142,4 +142,3 @@ def downgrade() -> None:
     # Forward-only migration; downgrade provided for testing rollback
     op.drop_table("sandbox_runs")
     op.drop_table("evolution_candidates")
-

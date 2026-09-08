@@ -26,4 +26,3 @@ class DataClassification(StrEnum):
     INTERNAL = "INTERNAL"
     CONFIDENTIAL = "CONFIDENTIAL"
     RESTRICTED = "RESTRICTED"
-

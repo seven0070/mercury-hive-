@@ -26,4 +26,3 @@ class SyncStatus(StrEnum):
     SYNCED = "SYNCED"
     PENDING = "PENDING"
     FAILED = "FAILED"
-

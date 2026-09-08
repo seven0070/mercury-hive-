@@ -225,4 +225,3 @@ class TaskDelegation(Base):
         server_default=text("now()"),
         nullable=False,
     )
-

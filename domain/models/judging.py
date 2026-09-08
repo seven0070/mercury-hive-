@@ -63,9 +63,7 @@ class Rubric(Base):
         nullable=False,
     )
 
-    __table_args__ = (
-        UniqueConstraint("name", "version", name="uq_rubrics_name_version"),
-    )
+    __table_args__ = (UniqueConstraint("name", "version", name="uq_rubrics_name_version"),)
 
 
 class EvaluationSubmission(Base):
@@ -218,4 +216,3 @@ class JudgeScorecard(Base):
         ),
         UniqueConstraint("session_id", "judge_agent_id", name="uq_scorecard_session_judge"),
     )
-

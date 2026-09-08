@@ -27,7 +27,7 @@ class TokenError(Exception):
 class AccessTokenClaims:
     """Validated access token claims."""
 
-    sub: uuid.UUID  # Owner ID
+    sub: uuid.UUID  # Owner ID or Agent ID
     sid: uuid.UUID  # Session ID
     jti: uuid.UUID  # Token ID
     token_type: str  # Must be "access"
@@ -36,6 +36,8 @@ class AccessTokenClaims:
     exp: datetime
     iss: str
     aud: str
+    role: str = "OWNER"
+    department_id: uuid.UUID | None = None
 
 
 def create_access_token(
@@ -46,16 +48,48 @@ def create_access_token(
     issuer: str = "mercury-hive",
     audience: str = "mercury-hive-api",
     expires_minutes: int = 5,
+    role: str = "OWNER",
+    department_id: uuid.UUID | None = None,
 ) -> str:
     """Create a signed JWT access token.
 
-    Claims include: sub, sid, jti, type, iat, nbf, exp, iss, aud.
+    Claims include: sub, sid, jti, type, iat, nbf, exp, iss, aud, role, department_id.
     """
     now = datetime.now(UTC)
     payload = {
         "sub": str(owner_id),
         "sid": str(session_id),
         "jti": str(uuid.uuid4()),
+        "role": role,
+        "department_id": str(department_id) if department_id else None,
+        "type": "access",
+        "iat": now,
+        "nbf": now,
+        "exp": now + timedelta(minutes=expires_minutes),
+        "iss": issuer,
+        "aud": audience,
+    }
+    return jwt.encode(payload, secret_key, algorithm=algorithm)
+
+
+def create_agent_token(
+    agent_id: uuid.UUID,
+    role: str,
+    secret_key: str,
+    department_id: uuid.UUID | None = None,
+    algorithm: str = "HS256",
+    issuer: str = "mercury-hive",
+    audience: str = "mercury-hive-api",
+    expires_minutes: int = 15,
+) -> str:
+    """Create a signed JWT access token for an authenticated internal AI Agent."""
+    now = datetime.now(UTC)
+    payload = {
+        "sub": str(agent_id),
+        "sid": str(uuid.uuid4()),
+        "jti": str(uuid.uuid4()),
+        "role": role,
+        "department_id": str(department_id) if department_id else None,
         "type": "access",
         "iat": now,
         "nbf": now,
@@ -114,6 +148,15 @@ def validate_access_token(
     except (ValueError, KeyError) as e:
         raise TokenError(f"invalid_uuid_claim: {e}") from e
 
+    role = payload.get("role", "OWNER")
+    dept_raw = payload.get("department_id")
+    dept_id = None
+    if dept_raw:
+        try:
+            dept_id = uuid.UUID(dept_raw)
+        except ValueError:
+            dept_id = None
+
     return AccessTokenClaims(
         sub=sub,
         sid=sid,
@@ -124,6 +167,8 @@ def validate_access_token(
         exp=datetime.fromtimestamp(payload["exp"], tz=UTC),
         iss=payload["iss"],
         aud=payload["aud"],
+        role=role,
+        department_id=dept_id,
     )
 
 
