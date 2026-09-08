@@ -46,8 +46,19 @@ GRANT SELECT ON permission_grants TO mercury_test_runtime;
 GRANT INSERT (id, agent_id, task_id, department_id, allowed_actions, allowed_tools, memory_scopes, budget_limit, expires_at, approval_requirements, issued_by) ON permission_grants TO mercury_test_runtime;
 GRANT UPDATE (revoked_at, revocation_reason) ON permission_grants TO mercury_test_runtime;
 
+GRANT SELECT ON tasks TO mercury_test_runtime;
+GRANT INSERT (id, title, description, priority, status, origin_department_id, assigned_department_id, assigned_agent_id, created_by, parent_task_id, required_capabilities, input_artifacts, output_artifacts, budget_allocated, budget_spent, deadline) ON tasks TO mercury_test_runtime;
+GRANT UPDATE (title, description, priority, status, assigned_agent_id, required_capabilities, input_artifacts, output_artifacts, budget_allocated, budget_spent, deadline, completed_at, updated_at) ON tasks TO mercury_test_runtime;
+
+GRANT SELECT ON cross_department_bridges TO mercury_test_runtime;
+GRANT INSERT (id, source_department_id, target_department_id, purpose, status, allowed_data_classification, data_sharing_scopes, requested_by, approved_by, expires_at) ON cross_department_bridges TO mercury_test_runtime;
+GRANT UPDATE (status, approved_by, revoked_at, revocation_reason) ON cross_department_bridges TO mercury_test_runtime;
+
+GRANT SELECT ON task_delegations TO mercury_test_runtime;
+GRANT INSERT (id, task_id, bridge_id, delegated_from_agent_id, delegated_to_agent_id, notes) ON task_delegations TO mercury_test_runtime;
+
 GRANT SELECT ON alembic_version TO mercury_test_runtime;
 GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO mercury_test_runtime;
 SQL
 
-echo "Test privileges applied (Phase 3)."
+echo "Test privileges applied (Phase 4)."

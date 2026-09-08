@@ -7,6 +7,7 @@ from domain.models.governance import Approval, Budget, ConstitutionRecord, Syste
 from domain.models.owner import Owner
 from domain.models.refresh_token import RefreshToken
 from domain.models.session import OwnerSession
+from domain.models.tasks import CrossDepartmentBridge, Task, TaskDelegation
 
 __all__ = [
     "Agent",
@@ -15,10 +16,13 @@ __all__ = [
     "Base",
     "Budget",
     "ConstitutionRecord",
+    "CrossDepartmentBridge",
     "Department",
     "Owner",
     "OwnerSession",
     "PermissionGrant",
     "RefreshToken",
     "SystemState",
+    "Task",
+    "TaskDelegation",
 ]

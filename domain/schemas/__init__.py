@@ -25,6 +25,17 @@ from domain.schemas.governance import (
     OwnerDashboardResponse,
     OwnerOverrideRequest,
 )
+from domain.schemas.tasks import (
+    BridgeCreate,
+    BridgeDecisionRequest,
+    BridgeResponse,
+    TaskCreate,
+    TaskDelegationCreate,
+    TaskDelegationResponse,
+    TaskResponse,
+    TaskStatusTransition,
+    TaskUpdate,
+)
 
 __all__ = [
     "AgentCreate",
@@ -37,6 +48,9 @@ __all__ = [
     "AuditEventCreate",
     "AuditEventResponse",
     "AuthError",
+    "BridgeCreate",
+    "BridgeDecisionRequest",
+    "BridgeResponse",
     "DepartmentCreate",
     "DepartmentResponse",
     "EmergencyShutdownRequest",
@@ -48,5 +62,11 @@ __all__ = [
     "PermissionGrantCreate",
     "PermissionGrantResponse",
     "RefreshRequest",
+    "TaskCreate",
+    "TaskDelegationCreate",
+    "TaskDelegationResponse",
+    "TaskResponse",
+    "TaskStatusTransition",
+    "TaskUpdate",
     "TokenResponse",
 ]
