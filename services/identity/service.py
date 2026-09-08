@@ -11,7 +11,7 @@ import uuid
 from datetime import UTC, datetime, timedelta
 
 import structlog
-from sqlalchemy import select, text
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
 
 from apps.api.config import RuntimeSettings
@@ -19,7 +19,13 @@ from domain.models.owner import Owner
 from domain.models.refresh_token import RefreshToken
 from domain.models.session import OwnerSession
 from domain.schemas.audit import AuditEventCreate
-from domain.schemas.auth import LoginRequest, OwnerProfile, RefreshRequest, TokenResponse
+from domain.schemas.auth import (
+    LoginRequest,
+    OwnerProfile,
+    RefreshRequest,
+    SessionInfo,
+    TokenResponse,
+)
 from services.audit.service import log_audit_event, log_audit_event_independent
 from services.identity.hashing import needs_rehash, verify_password
 from services.identity.tokens import (
@@ -27,6 +33,7 @@ from services.identity.tokens import (
     generate_refresh_token,
     hash_refresh_token,
 )
+from services.identity.totp import verify_totp_code
 
 logger = structlog.get_logger()
 
@@ -42,19 +49,22 @@ async def _log_audit_independent(
     correlation_id: uuid.UUID | None = None,
 ) -> None:
     """Log audit event in a separate transaction using the persistent audit engine."""
-    await log_audit_event_independent(
-        audit_engine,
-        AuditEventCreate(
-            event_type=event_type,
-            action=action,
-            decision=decision,
-            reason=reason,
-            actor_id=actor_id,
-            target_id=target_id,
-            correlation_id=correlation_id,
-            actor_role="OWNER",
-        ),
-    )
+    try:
+        await log_audit_event_independent(
+            audit_engine,
+            AuditEventCreate(
+                event_type=event_type,
+                action=action,
+                decision=decision,
+                reason=reason,
+                actor_id=actor_id,
+                target_id=target_id,
+                correlation_id=correlation_id,
+                actor_role="OWNER",
+            ),
+        )
+    except Exception as exc:
+        logger.warning("audit_log_independent_failed", error=str(exc))
 
 
 async def _log_audit(
@@ -68,19 +78,29 @@ async def _log_audit(
     correlation_id: uuid.UUID | None = None,
 ) -> None:
     """Log audit event within the current transaction via fn_record_audit_event."""
-    await log_audit_event(
-        session,
-        AuditEventCreate(
-            event_type=event_type,
-            actor_id=actor_id,
-            actor_role="OWNER",
-            action=action,
-            decision=decision,
-            reason=reason,
-            target_id=target_id,
-            correlation_id=correlation_id,
-        ),
-    )
+    try:
+        await log_audit_event(
+            session,
+            AuditEventCreate(
+                event_type=event_type,
+                actor_id=actor_id,
+                actor_role="OWNER",
+                action=action,
+                decision=decision,
+                reason=reason,
+                target_id=target_id,
+                correlation_id=correlation_id,
+            ),
+        )
+    except Exception as exc:
+        logger.warning("audit_log_failed", error=str(exc))
+
+
+def _ensure_utc(dt: datetime) -> datetime:
+    """Ensure datetime object is timezone-aware in UTC."""
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=UTC)
+    return dt
 
 
 class AuthenticationError(Exception):
@@ -96,6 +116,7 @@ async def login(
     request: LoginRequest,
     settings: RuntimeSettings,
     audit_engine: AsyncEngine | None = None,
+    client_ip: str | None = None,
 ) -> TokenResponse:
     """Authenticate owner and return token pair.
 
@@ -147,6 +168,30 @@ async def login(
         )
         raise AuthenticationError("owner_locked")
 
+    # Verify TOTP MFA if enabled
+    mfa_enabled = getattr(settings, "owner_mfa_enabled", False) or getattr(
+        owner, "mfa_enabled", False
+    )
+    if mfa_enabled:
+        mfa_secret = getattr(settings, "owner_mfa_secret", None) or getattr(
+            owner, "totp_secret", None
+        )
+        if (
+            not mfa_secret
+            or not request.totp_code
+            or not verify_totp_code(mfa_secret, request.totp_code)
+        ):
+            await _log_audit_independent(
+                audit_target,
+                "AUTH",
+                "login",
+                decision="DENY",
+                reason="mfa_failed",
+                actor_id=owner.id,
+                correlation_id=correlation_id,
+            )
+            raise AuthenticationError("mfa_failed")
+
     # Rehash if parameters changed
     if needs_rehash(owner.password_hash):
         # Note: runtime role can't UPDATE password_hash.
@@ -158,6 +203,7 @@ async def login(
     owner_session = OwnerSession(
         id=session_id,
         owner_id=owner.id,
+        created_at=now,
         expires_at=now + timedelta(days=settings.jwt_session_days),
     )
     session.add(owner_session)
@@ -168,14 +214,14 @@ async def login(
         id=uuid.uuid4(),
         session_id=session_id,
         token_hash=hash_refresh_token(raw_refresh),
+        created_at=now,
         expires_at=now + timedelta(hours=settings.jwt_refresh_token_hours),
     )
     session.add(refresh_token)
 
     # Update last_login_at
     await session.execute(
-        text("UPDATE owners SET last_login_at = :now WHERE id = :id"),
-        {"now": now, "id": owner.id},
+        update(Owner).where(Owner.id == owner.id).values(last_login_at=now)
     )
 
     # Create access token
@@ -212,6 +258,7 @@ async def refresh(
     request: RefreshRequest,
     settings: RuntimeSettings,
     audit_engine: AsyncEngine | None = None,
+    client_ip: str | None = None,
 ) -> TokenResponse:
     """Rotate refresh token with replay detection and row-level locking.
 
@@ -281,11 +328,11 @@ async def refresh(
     # 5. Check session validity (using <= for exact boundary checking)
     if owner_session.revoked_at is not None:
         raise AuthenticationError("session_revoked")
-    if owner_session.expires_at <= now:
+    if _ensure_utc(owner_session.expires_at) <= now:
         raise AuthenticationError("session_expired")
 
     # 6. Check token expiry (using <= for exact boundary checking)
-    if token.expires_at <= now:
+    if _ensure_utc(token.expires_at) <= now:
         raise AuthenticationError("token_expired")
 
     # 7. Reload and check owner
@@ -301,12 +348,13 @@ async def refresh(
     new_raw = generate_refresh_token()
     new_expiry = min(
         now + timedelta(hours=settings.jwt_refresh_token_hours),
-        owner_session.expires_at,
+        _ensure_utc(owner_session.expires_at),
     )
     new_token = RefreshToken(
         id=uuid.uuid4(),
         session_id=owner_session.id,
         token_hash=hash_refresh_token(new_raw),
+        created_at=now,
         expires_at=new_expiry,
     )
     session.add(new_token)
@@ -346,7 +394,7 @@ async def logout(
     session_id: uuid.UUID,
     settings: RuntimeSettings,
 ) -> None:
-    """Revoke the current session."""
+    """Revoke the current session and invalidate its refresh tokens."""
     now = datetime.now(UTC)
     correlation_id = uuid.uuid4()
 
@@ -359,6 +407,15 @@ async def logout(
         owner_session.revoked_at = now
         owner_session.revocation_reason = "logout"
 
+        await session.execute(
+            update(RefreshToken)
+            .where(
+                RefreshToken.session_id == session_id,
+                RefreshToken.used_at.is_(None),
+            )
+            .values(used_at=now)
+        )
+
     await _log_audit(
         session,
         "AUTH",
@@ -368,6 +425,137 @@ async def logout(
         actor_id=owner_id,
         correlation_id=correlation_id,
     )
+
+
+async def list_active_sessions(
+    session: AsyncSession,
+    owner_id: uuid.UUID,
+    current_session_id: uuid.UUID | None = None,
+) -> list[SessionInfo]:
+    """List active, non-expired, non-revoked sessions for current owner."""
+    now = datetime.now(UTC)
+    result = await session.execute(
+        select(OwnerSession)
+        .where(
+            OwnerSession.owner_id == owner_id,
+            OwnerSession.revoked_at.is_(None),
+            OwnerSession.expires_at > now,
+        )
+        .order_by(OwnerSession.created_at.desc())
+    )
+    sessions = result.scalars().all()
+    return [
+        SessionInfo(
+            id=s.id,
+            created_at=_ensure_utc(s.created_at),
+            expires_at=_ensure_utc(s.expires_at),
+            is_current=(s.id == current_session_id),
+        )
+        for s in sessions
+    ]
+
+
+async def revoke_session(
+    session: AsyncSession,
+    owner_id: uuid.UUID,
+    session_id: uuid.UUID,
+) -> bool:
+    """Revoke specified session and invalidate associated refresh tokens."""
+    now = datetime.now(UTC)
+    correlation_id = uuid.uuid4()
+
+    result = await session.execute(
+        select(OwnerSession)
+        .where(
+            OwnerSession.id == session_id,
+            OwnerSession.owner_id == owner_id,
+        )
+        .with_for_update()
+    )
+    owner_session = result.scalar_one_or_none()
+    if owner_session is None:
+        return False
+
+    if owner_session.revoked_at is None:
+        owner_session.revoked_at = now
+        owner_session.revocation_reason = "revoked_by_owner"
+
+    await session.execute(
+        update(RefreshToken)
+        .where(
+            RefreshToken.session_id == session_id,
+            RefreshToken.used_at.is_(None),
+        )
+        .values(used_at=now)
+    )
+
+    await _log_audit(
+        session,
+        "AUTH",
+        "revoke_session",
+        decision="ALLOW",
+        reason="revoked_by_owner",
+        actor_id=owner_id,
+        target_id=session_id,
+        correlation_id=correlation_id,
+    )
+
+    return True
+
+
+async def revoke_all_sessions(
+    session: AsyncSession,
+    owner_id: uuid.UUID,
+    include_current: bool = False,
+    current_session_id: uuid.UUID | None = None,
+) -> int:
+    """Revoke all active sessions (or all other sessions) for the owner."""
+    now = datetime.now(UTC)
+    correlation_id = uuid.uuid4()
+
+    stmt = (
+        select(OwnerSession)
+        .where(
+            OwnerSession.owner_id == owner_id,
+            OwnerSession.revoked_at.is_(None),
+            OwnerSession.expires_at > now,
+        )
+        .with_for_update()
+    )
+    if not include_current and current_session_id is not None:
+        stmt = stmt.where(OwnerSession.id != current_session_id)
+
+    result = await session.execute(stmt)
+    sessions_to_revoke = list(result.scalars().all())
+
+    if not sessions_to_revoke:
+        return 0
+
+    session_ids = [s.id for s in sessions_to_revoke]
+    for s in sessions_to_revoke:
+        s.revoked_at = now
+        s.revocation_reason = "revoked_by_owner"
+
+    await session.execute(
+        update(RefreshToken)
+        .where(
+            RefreshToken.session_id.in_(session_ids),
+            RefreshToken.used_at.is_(None),
+        )
+        .values(used_at=now)
+    )
+
+    await _log_audit(
+        session,
+        "AUTH",
+        "revoke_all_sessions",
+        decision="ALLOW",
+        reason=f"revoked_{len(sessions_to_revoke)}_sessions",
+        actor_id=owner_id,
+        correlation_id=correlation_id,
+    )
+
+    return len(sessions_to_revoke)
 
 
 async def get_owner_profile(

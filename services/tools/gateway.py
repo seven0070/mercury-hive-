@@ -10,12 +10,14 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from domain.enums.agent_status import AgentStatus
+from domain.enums.governance import SystemRunState
 from domain.enums.tools import RollbackStatus, ToolExecutionStatus
 from domain.models.agents import Agent, PermissionGrant
 from domain.models.tools import RollbackArtifact, ToolDefinition, ToolExecution
 from domain.schemas.audit import AuditEventCreate
 from domain.schemas.tools import ToolDefinitionCreate, ToolExecutionRequest
 from services.audit.service import log_audit_event
+from services.governance.shutdown import get_cached_run_state
 
 logger = structlog.get_logger()
 
@@ -115,6 +117,21 @@ async def execute_tool(
     """Validate policy, check permission grant, execute tool, and record execution."""
     start_time = time.monotonic()
     now = datetime.now(UTC)
+
+    # 0. Check system shutdown state
+    run_state, reason = get_cached_run_state()
+    if run_state == SystemRunState.EMERGENCY_SHUTDOWN:
+        reason_str = f" ({reason})" if reason else ""
+        raise ToolGatewayError(
+            f"Tool execution halted: emergency shutdown active{reason_str}",
+            status_code=503,
+        )
+    if run_state == SystemRunState.DEGRADED:
+        reason_str = f" ({reason})" if reason else ""
+        raise ToolGatewayError(
+            f"Tool execution blocked: system in degraded mode{reason_str}",
+            status_code=503,
+        )
 
     # 1. Check agent status
     agent_res = await session.execute(select(Agent).where(Agent.id == request.agent_id))

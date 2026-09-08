@@ -2,6 +2,20 @@
 
 from typing import Final
 
+from services.agent_runtime.sanitizer import (
+    sanitize_untrusted_input,
+    wrap_tool_result,
+    wrap_untrusted_task,
+)
+
+__all__ = [
+    "AUTHORITY_HIERARCHY_HEADER",
+    "get_system_prompt_for_role",
+    "sanitize_untrusted_input",
+    "wrap_tool_result",
+    "wrap_untrusted_task",
+]
+
 AUTHORITY_HIERARCHY_HEADER: Final[str] = """
 === CORE AUTHORITY HIERARCHY ===
 1. CONSTITUTION: You must adhere to the 16 mandatory rules of the Mercury Hive Constitution.

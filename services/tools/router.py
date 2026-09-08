@@ -6,7 +6,12 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from apps.api.dependencies import AuthenticatedOwner, get_current_owner, get_db
+from apps.api.dependencies import (
+    AuthenticatedOwner,
+    get_current_owner,
+    get_db,
+    verify_shutdown_state,
+)
 from domain.models.tools import ToolDefinition
 from domain.schemas.tools import (
     ToolDefinitionCreate,
@@ -23,7 +28,11 @@ from services.tools.gateway import (
 router = APIRouter(prefix="/tools", tags=["tools"])
 
 
-@router.post("/catalog", response_model=ToolDefinitionResponse)
+@router.post(
+    "/catalog",
+    response_model=ToolDefinitionResponse,
+    dependencies=[Depends(verify_shutdown_state(mutation=True))],
+)
 async def api_register_tool(
     request: ToolDefinitionCreate,
     session: Annotated[AsyncSession, Depends(get_db)],
@@ -42,7 +51,11 @@ async def api_register_tool(
         raise HTTPException(status_code=e.status_code, detail=e.message) from e
 
 
-@router.get("/catalog", response_model=list[ToolDefinitionResponse])
+@router.get(
+    "/catalog",
+    response_model=list[ToolDefinitionResponse],
+    dependencies=[Depends(verify_shutdown_state(mutation=False))],
+)
 async def api_list_tools(
     session: Annotated[AsyncSession, Depends(get_db)],
     owner: Annotated[AuthenticatedOwner, Depends(get_current_owner)],
@@ -55,7 +68,11 @@ async def api_list_tools(
     return [ToolDefinitionResponse.model_validate(t) for t in res.scalars().all()]
 
 
-@router.post("/execute", response_model=ToolExecutionResponse)
+@router.post(
+    "/execute",
+    response_model=ToolExecutionResponse,
+    dependencies=[Depends(verify_shutdown_state(mutation=True))],
+)
 async def api_execute_tool(
     request: ToolExecutionRequest,
     session: Annotated[AsyncSession, Depends(get_db)],

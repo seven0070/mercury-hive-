@@ -6,7 +6,12 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from apps.api.dependencies import AuthenticatedOwner, get_current_owner, get_db
+from apps.api.dependencies import (
+    AuthenticatedOwner,
+    get_current_owner,
+    get_db,
+    verify_shutdown_state,
+)
 from domain.schemas.judging import (
     JudgingSessionCreate,
     JudgingSessionResponse,
@@ -30,7 +35,11 @@ from services.judging.service import (
 router = APIRouter(prefix="/judging", tags=["judging"])
 
 
-@router.post("/rubrics", response_model=RubricResponse)
+@router.post(
+    "/rubrics",
+    response_model=RubricResponse,
+    dependencies=[Depends(verify_shutdown_state(mutation=True))],
+)
 async def api_create_rubric(
     request: RubricCreate,
     session: Annotated[AsyncSession, Depends(get_db)],
@@ -49,7 +58,11 @@ async def api_create_rubric(
         raise HTTPException(status_code=e.status_code, detail=e.message) from e
 
 
-@router.get("/rubrics", response_model=list[RubricResponse])
+@router.get(
+    "/rubrics",
+    response_model=list[RubricResponse],
+    dependencies=[Depends(verify_shutdown_state(mutation=False))],
+)
 async def api_list_rubrics(
     session: Annotated[AsyncSession, Depends(get_db)],
     owner: Annotated[AuthenticatedOwner, Depends(get_current_owner)],
@@ -59,7 +72,11 @@ async def api_list_rubrics(
     return [RubricResponse.model_validate(r) for r in rubrics]
 
 
-@router.post("/submissions", response_model=SubmissionResponse)
+@router.post(
+    "/submissions",
+    response_model=SubmissionResponse,
+    dependencies=[Depends(verify_shutdown_state(mutation=True))],
+)
 async def api_submit_deliverable(
     request: SubmissionCreate,
     author_agent_id: uuid.UUID,
@@ -78,7 +95,11 @@ async def api_submit_deliverable(
         raise HTTPException(status_code=e.status_code, detail=e.message) from e
 
 
-@router.post("/sessions", response_model=JudgingSessionResponse)
+@router.post(
+    "/sessions",
+    response_model=JudgingSessionResponse,
+    dependencies=[Depends(verify_shutdown_state(mutation=True))],
+)
 async def api_create_judging_session(
     request: JudgingSessionCreate,
     session: Annotated[AsyncSession, Depends(get_db)],
@@ -97,7 +118,11 @@ async def api_create_judging_session(
         raise HTTPException(status_code=e.status_code, detail=e.message) from e
 
 
-@router.get("/sessions/{session_id}", response_model=JudgingSessionResponse)
+@router.get(
+    "/sessions/{session_id}",
+    response_model=JudgingSessionResponse,
+    dependencies=[Depends(verify_shutdown_state(mutation=False))],
+)
 async def api_get_judging_session(
     session_id: uuid.UUID,
     session: Annotated[AsyncSession, Depends(get_db)],
@@ -110,7 +135,11 @@ async def api_get_judging_session(
     return JudgingSessionResponse.model_validate(j_session)
 
 
-@router.post("/sessions/{session_id}/score", response_model=ScorecardResponse)
+@router.post(
+    "/sessions/{session_id}/score",
+    response_model=ScorecardResponse,
+    dependencies=[Depends(verify_shutdown_state(mutation=True))],
+)
 async def api_submit_scorecard(
     session_id: uuid.UUID,
     judge_agent_id: uuid.UUID,

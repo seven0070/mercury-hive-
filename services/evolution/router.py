@@ -6,7 +6,12 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from apps.api.dependencies import AuthenticatedOwner, get_current_owner, get_db
+from apps.api.dependencies import (
+    AuthenticatedOwner,
+    get_current_owner,
+    get_db,
+    verify_shutdown_state,
+)
 from domain.schemas.evolution import (
     EvolutionCandidateCreate,
     EvolutionCandidateResponse,
@@ -31,7 +36,11 @@ from services.evolution.service import (
 router = APIRouter(prefix="/evolution", tags=["evolution"])
 
 
-@router.post("/candidates", response_model=EvolutionCandidateResponse)
+@router.post(
+    "/candidates",
+    response_model=EvolutionCandidateResponse,
+    dependencies=[Depends(verify_shutdown_state(mutation=True))],
+)
 async def api_propose_candidate(
     request: EvolutionCandidateCreate,
     proposer_agent_id: uuid.UUID,
@@ -50,7 +59,11 @@ async def api_propose_candidate(
         raise HTTPException(status_code=e.status_code, detail=e.message) from e
 
 
-@router.get("/candidates", response_model=list[EvolutionCandidateResponse])
+@router.get(
+    "/candidates",
+    response_model=list[EvolutionCandidateResponse],
+    dependencies=[Depends(verify_shutdown_state(mutation=False))],
+)
 async def api_list_candidates(
     session: Annotated[AsyncSession, Depends(get_db)],
     owner: Annotated[AuthenticatedOwner, Depends(get_current_owner)],
@@ -61,7 +74,11 @@ async def api_list_candidates(
     return [EvolutionCandidateResponse.model_validate(c) for c in candidates]
 
 
-@router.get("/candidates/{candidate_id}", response_model=EvolutionCandidateResponse)
+@router.get(
+    "/candidates/{candidate_id}",
+    response_model=EvolutionCandidateResponse,
+    dependencies=[Depends(verify_shutdown_state(mutation=False))],
+)
 async def api_get_candidate(
     candidate_id: uuid.UUID,
     session: Annotated[AsyncSession, Depends(get_db)],
@@ -74,7 +91,11 @@ async def api_get_candidate(
     return EvolutionCandidateResponse.model_validate(candidate)
 
 
-@router.post("/candidates/{candidate_id}/sandbox", response_model=SandboxRunResponse)
+@router.post(
+    "/candidates/{candidate_id}/sandbox",
+    response_model=SandboxRunResponse,
+    dependencies=[Depends(verify_shutdown_state(mutation=True))],
+)
 async def api_run_sandbox(
     candidate_id: uuid.UUID,
     request: SandboxRunCreate,
@@ -100,6 +121,7 @@ async def api_run_sandbox(
 @router.get(
     "/candidates/{candidate_id}/sandbox",
     response_model=list[SandboxRunResponse],
+    dependencies=[Depends(verify_shutdown_state(mutation=False))],
 )
 async def api_list_sandbox_runs(
     candidate_id: uuid.UUID,
@@ -111,7 +133,11 @@ async def api_list_sandbox_runs(
     return [SandboxRunResponse.model_validate(r) for r in runs]
 
 
-@router.post("/candidates/{candidate_id}/shadow", response_model=EvolutionCandidateResponse)
+@router.post(
+    "/candidates/{candidate_id}/shadow",
+    response_model=EvolutionCandidateResponse,
+    dependencies=[Depends(verify_shutdown_state(mutation=True))],
+)
 async def api_deploy_shadow(
     candidate_id: uuid.UUID,
     request: ShadowDeployRequest,
@@ -132,7 +158,11 @@ async def api_deploy_shadow(
         raise HTTPException(status_code=e.status_code, detail=e.message) from e
 
 
-@router.post("/candidates/{candidate_id}/promote", response_model=EvolutionCandidateResponse)
+@router.post(
+    "/candidates/{candidate_id}/promote",
+    response_model=EvolutionCandidateResponse,
+    dependencies=[Depends(verify_shutdown_state(mutation=True))],
+)
 async def api_promote_candidate(
     candidate_id: uuid.UUID,
     request: PromotionRequest,
@@ -152,7 +182,11 @@ async def api_promote_candidate(
         raise HTTPException(status_code=e.status_code, detail=e.message) from e
 
 
-@router.post("/candidates/{candidate_id}/rollback", response_model=EvolutionCandidateResponse)
+@router.post(
+    "/candidates/{candidate_id}/rollback",
+    response_model=EvolutionCandidateResponse,
+    dependencies=[Depends(verify_shutdown_state(mutation=True))],
+)
 async def api_rollback_candidate(
     candidate_id: uuid.UUID,
     request: RollbackRequest,

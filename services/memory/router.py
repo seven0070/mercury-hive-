@@ -6,7 +6,12 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from apps.api.dependencies import AuthenticatedOwner, get_current_owner, get_db
+from apps.api.dependencies import (
+    AuthenticatedOwner,
+    get_current_owner,
+    get_db,
+    verify_shutdown_state,
+)
 from domain.enums.tools import MemoryScope
 from domain.schemas.tools import AgentMemoryResponse, AgentMemoryStore
 from services.memory.service import (
@@ -19,7 +24,11 @@ from services.memory.service import (
 router = APIRouter(prefix="/memory", tags=["memory"])
 
 
-@router.post("/{agent_id}", response_model=AgentMemoryResponse)
+@router.post(
+    "/{agent_id}",
+    response_model=AgentMemoryResponse,
+    dependencies=[Depends(verify_shutdown_state(mutation=True))],
+)
 async def api_store_memory(
     agent_id: uuid.UUID,
     request: AgentMemoryStore,
@@ -40,7 +49,11 @@ async def api_store_memory(
         raise HTTPException(status_code=e.status_code, detail=e.message) from e
 
 
-@router.get("/{agent_id}", response_model=list[AgentMemoryResponse])
+@router.get(
+    "/{agent_id}",
+    response_model=list[AgentMemoryResponse],
+    dependencies=[Depends(verify_shutdown_state(mutation=False))],
+)
 async def api_list_memories(
     agent_id: uuid.UUID,
     session: Annotated[AsyncSession, Depends(get_db)],
@@ -52,7 +65,11 @@ async def api_list_memories(
     return [AgentMemoryResponse.model_validate(m) for m in items]
 
 
-@router.get("/{agent_id}/{scope}/{key}", response_model=AgentMemoryResponse)
+@router.get(
+    "/{agent_id}/{scope}/{key}",
+    response_model=AgentMemoryResponse,
+    dependencies=[Depends(verify_shutdown_state(mutation=False))],
+)
 async def api_get_memory(
     agent_id: uuid.UUID,
     scope: MemoryScope,

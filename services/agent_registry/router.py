@@ -6,7 +6,12 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from apps.api.dependencies import AuthenticatedOwner, get_current_owner, get_db
+from apps.api.dependencies import (
+    AuthenticatedOwner,
+    get_current_owner,
+    get_db,
+    verify_shutdown_state,
+)
 from domain.enums.agent_status import AgentStatus, DepartmentStatus
 from domain.enums.roles import SystemRole
 from domain.schemas.agents import (
@@ -49,7 +54,11 @@ router = APIRouter(tags=["agents"])
 # ============================================================
 
 
-@router.post("/agents", response_model=AgentResponse)
+@router.post(
+    "/agents",
+    response_model=AgentResponse,
+    dependencies=[Depends(verify_shutdown_state(mutation=True))],
+)
 async def api_create_agent(
     request: AgentCreate,
     session: Annotated[AsyncSession, Depends(get_db)],
@@ -68,7 +77,11 @@ async def api_create_agent(
         raise HTTPException(status_code=400, detail=e.message) from e
 
 
-@router.get("/agents", response_model=list[AgentResponse])
+@router.get(
+    "/agents",
+    response_model=list[AgentResponse],
+    dependencies=[Depends(verify_shutdown_state(mutation=False))],
+)
 async def api_list_agents(
     session: Annotated[AsyncSession, Depends(get_db)],
     owner: Annotated[AuthenticatedOwner, Depends(get_current_owner)],
@@ -88,7 +101,11 @@ async def api_list_agents(
     return [AgentResponse.model_validate(a) for a in agents]
 
 
-@router.get("/agents/{agent_id}", response_model=AgentResponse)
+@router.get(
+    "/agents/{agent_id}",
+    response_model=AgentResponse,
+    dependencies=[Depends(verify_shutdown_state(mutation=False))],
+)
 async def api_get_agent(
     agent_id: uuid.UUID,
     session: Annotated[AsyncSession, Depends(get_db)],
@@ -101,7 +118,11 @@ async def api_get_agent(
     return AgentResponse.model_validate(agent)
 
 
-@router.patch("/agents/{agent_id}", response_model=AgentResponse)
+@router.patch(
+    "/agents/{agent_id}",
+    response_model=AgentResponse,
+    dependencies=[Depends(verify_shutdown_state(mutation=True))],
+)
 async def api_update_agent(
     agent_id: uuid.UUID,
     request: AgentUpdate,
@@ -122,7 +143,11 @@ async def api_update_agent(
         raise HTTPException(status_code=400, detail=e.message) from e
 
 
-@router.post("/agents/{agent_id}/suspend", response_model=AgentResponse)
+@router.post(
+    "/agents/{agent_id}/suspend",
+    response_model=AgentResponse,
+    dependencies=[Depends(verify_shutdown_state(mutation=True))],
+)
 async def api_suspend_agent(
     agent_id: uuid.UUID,
     request: AgentStatusChange,
@@ -143,7 +168,11 @@ async def api_suspend_agent(
         raise HTTPException(status_code=400, detail=e.message) from e
 
 
-@router.post("/agents/{agent_id}/terminate", response_model=AgentResponse)
+@router.post(
+    "/agents/{agent_id}/terminate",
+    response_model=AgentResponse,
+    dependencies=[Depends(verify_shutdown_state(mutation=True))],
+)
 async def api_terminate_agent(
     agent_id: uuid.UUID,
     request: AgentStatusChange,
@@ -164,7 +193,11 @@ async def api_terminate_agent(
         raise HTTPException(status_code=400, detail=e.message) from e
 
 
-@router.post("/agents/{agent_id}/restore", response_model=AgentResponse)
+@router.post(
+    "/agents/{agent_id}/restore",
+    response_model=AgentResponse,
+    dependencies=[Depends(verify_shutdown_state(mutation=True))],
+)
 async def api_restore_agent(
     agent_id: uuid.UUID,
     request: AgentStatusChange,
@@ -190,7 +223,11 @@ async def api_restore_agent(
 # ============================================================
 
 
-@router.get("/departments", response_model=list[DepartmentResponse])
+@router.get(
+    "/departments",
+    response_model=list[DepartmentResponse],
+    dependencies=[Depends(verify_shutdown_state(mutation=False))],
+)
 async def api_list_departments(
     session: Annotated[AsyncSession, Depends(get_db)],
     owner: Annotated[AuthenticatedOwner, Depends(get_current_owner)],
@@ -201,7 +238,11 @@ async def api_list_departments(
     return [DepartmentResponse.model_validate(d) for d in departments]
 
 
-@router.get("/departments/{department_id}", response_model=DepartmentResponse)
+@router.get(
+    "/departments/{department_id}",
+    response_model=DepartmentResponse,
+    dependencies=[Depends(verify_shutdown_state(mutation=False))],
+)
 async def api_get_department(
     department_id: uuid.UUID,
     session: Annotated[AsyncSession, Depends(get_db)],
@@ -214,7 +255,11 @@ async def api_get_department(
     return DepartmentResponse.model_validate(dept)
 
 
-@router.post("/departments/proposals", response_model=DepartmentResponse)
+@router.post(
+    "/departments/proposals",
+    response_model=DepartmentResponse,
+    dependencies=[Depends(verify_shutdown_state(mutation=True))],
+)
 async def api_propose_department(
     request: DepartmentCreate,
     session: Annotated[AsyncSession, Depends(get_db)],
@@ -233,7 +278,11 @@ async def api_propose_department(
         raise HTTPException(status_code=400, detail=e.message) from e
 
 
-@router.post("/departments/{department_id}/approve", response_model=DepartmentResponse)
+@router.post(
+    "/departments/{department_id}/approve",
+    response_model=DepartmentResponse,
+    dependencies=[Depends(verify_shutdown_state(mutation=True))],
+)
 async def api_approve_department(
     department_id: uuid.UUID,
     session: Annotated[AsyncSession, Depends(get_db)],
@@ -252,7 +301,11 @@ async def api_approve_department(
         raise HTTPException(status_code=400, detail=e.message) from e
 
 
-@router.post("/departments/{department_id}/suspend", response_model=DepartmentResponse)
+@router.post(
+    "/departments/{department_id}/suspend",
+    response_model=DepartmentResponse,
+    dependencies=[Depends(verify_shutdown_state(mutation=True))],
+)
 async def api_suspend_department(
     department_id: uuid.UUID,
     request: AgentStatusChange,
@@ -278,7 +331,11 @@ async def api_suspend_department(
 # ============================================================
 
 
-@router.post("/permissions/grant", response_model=PermissionGrantResponse)
+@router.post(
+    "/permissions/grant",
+    response_model=PermissionGrantResponse,
+    dependencies=[Depends(verify_shutdown_state(mutation=True))],
+)
 async def api_issue_permission_grant(
     request: PermissionGrantCreate,
     session: Annotated[AsyncSession, Depends(get_db)],
@@ -297,7 +354,11 @@ async def api_issue_permission_grant(
         raise HTTPException(status_code=400, detail=e.message) from e
 
 
-@router.post("/permissions/{grant_id}/revoke", response_model=PermissionGrantResponse)
+@router.post(
+    "/permissions/{grant_id}/revoke",
+    response_model=PermissionGrantResponse,
+    dependencies=[Depends(verify_shutdown_state(mutation=True))],
+)
 async def api_revoke_permission_grant(
     grant_id: uuid.UUID,
     request: AgentStatusChange,
@@ -318,7 +379,11 @@ async def api_revoke_permission_grant(
         raise HTTPException(status_code=400, detail=e.message) from e
 
 
-@router.get("/agents/{agent_id}/grants", response_model=list[PermissionGrantResponse])
+@router.get(
+    "/agents/{agent_id}/grants",
+    response_model=list[PermissionGrantResponse],
+    dependencies=[Depends(verify_shutdown_state(mutation=False))],
+)
 async def api_list_agent_grants(
     agent_id: uuid.UUID,
     session: Annotated[AsyncSession, Depends(get_db)],

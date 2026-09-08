@@ -2,6 +2,7 @@
 
 import uuid
 from datetime import datetime
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -91,3 +92,18 @@ class ExternalTaskIngestRequest(BaseModel):
     description: str = Field(min_length=5)
     department_id: uuid.UUID
     priority: str = Field(default="MEDIUM")
+
+
+class WebhookResponse(BaseModel):
+    """Schema for external integration webhook response."""
+
+    status: str = "processed"
+    message: str = "Webhook processed successfully"
+    idempotency_key: str | None = None
+    event: str | None = None
+    task_id: uuid.UUID | None = None
+    cached: bool = False
+    data: dict[str, Any] = Field(default_factory=dict)
+
+    model_config = ConfigDict(from_attributes=True)
+

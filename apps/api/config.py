@@ -8,6 +8,7 @@ Three separate settings classes enforce credential separation:
 The API container NEVER receives admin credentials.
 """
 
+from pydantic import SecretStr
 from pydantic_settings import BaseSettings
 
 
@@ -24,6 +25,11 @@ class RuntimeSettings(BaseSettings):
     jwt_session_days: int = 7
     constitution_path: str = "policies/constitution.yaml"
     log_level: str = "INFO"
+    owner_mfa_enabled: bool = False
+    owner_mfa_secret: str | None = None
+    anthropic_api_key: SecretStr | None = None
+    openai_api_key: SecretStr | None = None
+    tribe_webhook_secret: SecretStr = SecretStr("tribe-default-test-secret-change-in-prod")
 
     model_config = {"env_prefix": "", "case_sensitive": False}
 

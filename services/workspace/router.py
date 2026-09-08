@@ -6,7 +6,12 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from apps.api.dependencies import AuthenticatedOwner, get_current_owner, get_db
+from apps.api.dependencies import (
+    AuthenticatedOwner,
+    get_current_owner,
+    get_db,
+    verify_shutdown_state,
+)
 from domain.schemas.workspace import (
     AvatarProfileCreate,
     AvatarProfileResponse,
@@ -33,7 +38,11 @@ from services.workspace.service import (
 router = APIRouter(prefix="/workspace", tags=["workspace"])
 
 
-@router.post("/zones", response_model=WorkspaceZoneResponse)
+@router.post(
+    "/zones",
+    response_model=WorkspaceZoneResponse,
+    dependencies=[Depends(verify_shutdown_state(mutation=True))],
+)
 async def api_create_zone(
     request: WorkspaceZoneCreate,
     session: Annotated[AsyncSession, Depends(get_db)],
@@ -52,7 +61,11 @@ async def api_create_zone(
         raise HTTPException(status_code=e.status_code, detail=e.message) from e
 
 
-@router.get("/zones", response_model=list[WorkspaceZoneResponse])
+@router.get(
+    "/zones",
+    response_model=list[WorkspaceZoneResponse],
+    dependencies=[Depends(verify_shutdown_state(mutation=False))],
+)
 async def api_list_zones(
     session: Annotated[AsyncSession, Depends(get_db)],
     owner: Annotated[AuthenticatedOwner, Depends(get_current_owner)],
@@ -63,7 +76,11 @@ async def api_list_zones(
     return [WorkspaceZoneResponse.model_validate(z) for z in zones]
 
 
-@router.post("/avatars", response_model=AvatarProfileResponse)
+@router.post(
+    "/avatars",
+    response_model=AvatarProfileResponse,
+    dependencies=[Depends(verify_shutdown_state(mutation=True))],
+)
 async def api_create_avatar_profile(
     request: AvatarProfileCreate,
     session: Annotated[AsyncSession, Depends(get_db)],
@@ -82,7 +99,11 @@ async def api_create_avatar_profile(
         raise HTTPException(status_code=e.status_code, detail=e.message) from e
 
 
-@router.post("/presence", response_model=PresenceSessionResponse)
+@router.post(
+    "/presence",
+    response_model=PresenceSessionResponse,
+    dependencies=[Depends(verify_shutdown_state(mutation=True))],
+)
 async def api_update_presence(
     request: PresenceUpdate,
     session: Annotated[AsyncSession, Depends(get_db)],
@@ -104,7 +125,11 @@ async def api_update_presence(
         raise HTTPException(status_code=e.status_code, detail=e.message) from e
 
 
-@router.get("/presence", response_model=list[PresenceSessionResponse])
+@router.get(
+    "/presence",
+    response_model=list[PresenceSessionResponse],
+    dependencies=[Depends(verify_shutdown_state(mutation=False))],
+)
 async def api_list_presence(
     session: Annotated[AsyncSession, Depends(get_db)],
     owner: Annotated[AuthenticatedOwner, Depends(get_current_owner)],
@@ -115,7 +140,11 @@ async def api_list_presence(
     return [PresenceSessionResponse.model_validate(p) for p in sessions]
 
 
-@router.post("/meetings", response_model=VirtualMeetingResponse)
+@router.post(
+    "/meetings",
+    response_model=VirtualMeetingResponse,
+    dependencies=[Depends(verify_shutdown_state(mutation=True))],
+)
 async def api_schedule_meeting(
     request: VirtualMeetingCreate,
     session: Annotated[AsyncSession, Depends(get_db)],
@@ -134,7 +163,11 @@ async def api_schedule_meeting(
         raise HTTPException(status_code=e.status_code, detail=e.message) from e
 
 
-@router.post("/meetings/{meeting_id}/start", response_model=VirtualMeetingResponse)
+@router.post(
+    "/meetings/{meeting_id}/start",
+    response_model=VirtualMeetingResponse,
+    dependencies=[Depends(verify_shutdown_state(mutation=True))],
+)
 async def api_start_meeting(
     meeting_id: uuid.UUID,
     session: Annotated[AsyncSession, Depends(get_db)],
@@ -153,7 +186,11 @@ async def api_start_meeting(
         raise HTTPException(status_code=e.status_code, detail=e.message) from e
 
 
-@router.post("/meetings/{meeting_id}/conclude", response_model=VirtualMeetingResponse)
+@router.post(
+    "/meetings/{meeting_id}/conclude",
+    response_model=VirtualMeetingResponse,
+    dependencies=[Depends(verify_shutdown_state(mutation=True))],
+)
 async def api_conclude_meeting(
     meeting_id: uuid.UUID,
     session: Annotated[AsyncSession, Depends(get_db)],

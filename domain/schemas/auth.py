@@ -14,6 +14,7 @@ class LoginRequest(BaseModel):
 
     email: str = Field(..., max_length=320)
     password: str = Field(..., min_length=1, max_length=128)
+    totp_code: str | None = Field(None, max_length=16)
 
 
 class TokenResponse(BaseModel):
@@ -39,6 +40,17 @@ class OwnerProfile(BaseModel):
     status: str
     created_at: datetime
     last_login_at: datetime | None
+
+    model_config = {"from_attributes": True}
+
+
+class SessionInfo(BaseModel):
+    """Active session information."""
+
+    id: uuid.UUID
+    created_at: datetime
+    expires_at: datetime
+    is_current: bool = False
 
     model_config = {"from_attributes": True}
 

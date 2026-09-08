@@ -6,7 +6,12 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from apps.api.dependencies import AuthenticatedOwner, get_current_owner, get_db
+from apps.api.dependencies import (
+    AuthenticatedOwner,
+    get_current_owner,
+    get_db,
+    verify_shutdown_state,
+)
 from domain.enums.tools import RollbackStatus
 from domain.schemas.governance import ApprovalDecisionRequest
 from domain.schemas.tools import RollbackResponse
@@ -19,7 +24,11 @@ from services.rollback.service import (
 router = APIRouter(prefix="/rollbacks", tags=["rollbacks"])
 
 
-@router.get("", response_model=list[RollbackResponse])
+@router.get(
+    "",
+    response_model=list[RollbackResponse],
+    dependencies=[Depends(verify_shutdown_state(mutation=False))],
+)
 async def api_list_rollbacks(
     session: Annotated[AsyncSession, Depends(get_db)],
     owner: Annotated[AuthenticatedOwner, Depends(get_current_owner)],
@@ -39,7 +48,11 @@ async def api_list_rollbacks(
     return [RollbackResponse.model_validate(a) for a in artifacts]
 
 
-@router.post("/{rollback_id}/execute", response_model=RollbackResponse)
+@router.post(
+    "/{rollback_id}/execute",
+    response_model=RollbackResponse,
+    dependencies=[Depends(verify_shutdown_state(mutation=True))],
+)
 async def api_execute_rollback(
     rollback_id: uuid.UUID,
     request: ApprovalDecisionRequest,

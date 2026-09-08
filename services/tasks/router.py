@@ -6,7 +6,12 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from apps.api.dependencies import AuthenticatedOwner, get_current_owner, get_db
+from apps.api.dependencies import (
+    AuthenticatedOwner,
+    get_current_owner,
+    get_db,
+    verify_shutdown_state,
+)
 from domain.enums.tasks import TaskPriority, TaskStatus
 from domain.schemas.tasks import (
     TaskCreate,
@@ -28,7 +33,11 @@ from services.tasks.service import (
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
 
-@router.post("", response_model=TaskResponse)
+@router.post(
+    "",
+    response_model=TaskResponse,
+    dependencies=[Depends(verify_shutdown_state(mutation=True))],
+)
 async def api_create_task(
     request: TaskCreate,
     session: Annotated[AsyncSession, Depends(get_db)],
@@ -47,7 +56,11 @@ async def api_create_task(
         raise HTTPException(status_code=400, detail=e.message) from e
 
 
-@router.get("", response_model=list[TaskResponse])
+@router.get(
+    "",
+    response_model=list[TaskResponse],
+    dependencies=[Depends(verify_shutdown_state(mutation=False))],
+)
 async def api_list_tasks(
     session: Annotated[AsyncSession, Depends(get_db)],
     owner: Annotated[AuthenticatedOwner, Depends(get_current_owner)],
@@ -69,7 +82,11 @@ async def api_list_tasks(
     return [TaskResponse.model_validate(t) for t in tasks]
 
 
-@router.get("/{task_id}", response_model=TaskResponse)
+@router.get(
+    "/{task_id}",
+    response_model=TaskResponse,
+    dependencies=[Depends(verify_shutdown_state(mutation=False))],
+)
 async def api_get_task(
     task_id: uuid.UUID,
     session: Annotated[AsyncSession, Depends(get_db)],
@@ -82,7 +99,11 @@ async def api_get_task(
     return TaskResponse.model_validate(task)
 
 
-@router.post("/{task_id}/assign", response_model=TaskResponse)
+@router.post(
+    "/{task_id}/assign",
+    response_model=TaskResponse,
+    dependencies=[Depends(verify_shutdown_state(mutation=True))],
+)
 async def api_assign_task(
     task_id: uuid.UUID,
     agent_id: uuid.UUID,
@@ -103,7 +124,11 @@ async def api_assign_task(
         raise HTTPException(status_code=400, detail=e.message) from e
 
 
-@router.post("/{task_id}/transition", response_model=TaskResponse)
+@router.post(
+    "/{task_id}/transition",
+    response_model=TaskResponse,
+    dependencies=[Depends(verify_shutdown_state(mutation=True))],
+)
 async def api_transition_task(
     task_id: uuid.UUID,
     request: TaskStatusTransition,
@@ -124,7 +149,11 @@ async def api_transition_task(
         raise HTTPException(status_code=400, detail=e.message) from e
 
 
-@router.post("/delegate", response_model=TaskDelegationResponse)
+@router.post(
+    "/delegate",
+    response_model=TaskDelegationResponse,
+    dependencies=[Depends(verify_shutdown_state(mutation=True))],
+)
 async def api_delegate_task(
     request: TaskDelegationCreate,
     session: Annotated[AsyncSession, Depends(get_db)],

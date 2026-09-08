@@ -7,7 +7,12 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from apps.api.dependencies import AuthenticatedOwner, get_current_owner, get_db
+from apps.api.dependencies import (
+    AuthenticatedOwner,
+    get_current_owner,
+    get_db,
+    verify_shutdown_state,
+)
 from domain.enums.agent_status import AgentStatus
 from domain.enums.governance import ApprovalStatus, SystemRunState
 from domain.enums.tasks import BridgeStatus, TaskStatus
@@ -210,7 +215,11 @@ async def api_owner_audit_logs(
 # ============================================================
 
 
-@router.post("/approvals", response_model=ApprovalResponse)
+@router.post(
+    "/approvals",
+    response_model=ApprovalResponse,
+    dependencies=[Depends(verify_shutdown_state(mutation=True))],
+)
 async def api_create_approval(
     request: ApprovalCreate,
     session: Annotated[AsyncSession, Depends(get_db)],
@@ -221,7 +230,11 @@ async def api_create_approval(
     return ApprovalResponse.model_validate(approval)
 
 
-@router.get("/approvals", response_model=list[ApprovalResponse])
+@router.get(
+    "/approvals",
+    response_model=list[ApprovalResponse],
+    dependencies=[Depends(verify_shutdown_state(mutation=False))],
+)
 async def api_list_approvals(
     session: Annotated[AsyncSession, Depends(get_db)],
     owner: Annotated[AuthenticatedOwner, Depends(get_current_owner)],
@@ -233,7 +246,11 @@ async def api_list_approvals(
     return [ApprovalResponse.model_validate(app) for app in approvals]
 
 
-@router.post("/approvals/{approval_id}/approve", response_model=ApprovalResponse)
+@router.post(
+    "/approvals/{approval_id}/approve",
+    response_model=ApprovalResponse,
+    dependencies=[Depends(verify_shutdown_state(mutation=True))],
+)
 async def api_approve(
     approval_id: uuid.UUID,
     request: ApprovalDecisionRequest,
@@ -255,7 +272,11 @@ async def api_approve(
         raise HTTPException(status_code=400, detail=e.message) from e
 
 
-@router.post("/approvals/{approval_id}/reject", response_model=ApprovalResponse)
+@router.post(
+    "/approvals/{approval_id}/reject",
+    response_model=ApprovalResponse,
+    dependencies=[Depends(verify_shutdown_state(mutation=True))],
+)
 async def api_reject(
     approval_id: uuid.UUID,
     request: ApprovalDecisionRequest,

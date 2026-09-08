@@ -14,23 +14,46 @@ from services.audit.service import log_audit_event
 
 logger = structlog.get_logger()
 
+_cached_run_state: SystemRunState = SystemRunState.NORMAL
+_cached_shutdown_reason: str | None = None
 
-async def get_system_state(session: AsyncSession) -> SystemState:
+
+def get_cached_run_state() -> tuple[SystemRunState, str | None]:
+    """Get the current in-memory cached run state and optional reason."""
+    return _cached_run_state, _cached_shutdown_reason
+
+
+def set_cached_run_state(state: SystemRunState, reason: str | None = None) -> None:
+    """Set the in-memory cached run state and optional reason."""
+    global _cached_run_state, _cached_shutdown_reason
+    _cached_run_state = state
+    _cached_shutdown_reason = reason
+
+
+async def get_system_state(session: AsyncSession, for_update: bool = False) -> SystemState:
     """Retrieve the current persistent system state."""
-    result = await session.execute(
-        select(SystemState).where(SystemState.singleton.is_(True)).with_for_update()
-    )
+    query = select(SystemState).where(SystemState.singleton.is_(True))
+    if for_update:
+        query = query.with_for_update()
+    result = await session.execute(query)
     state = result.scalar_one_or_none()
     if state is None:
-        # Failsafe: if row is missing, seed normal state
+        # Failsafe: if row is missing, seed state using current cached state
         state = SystemState(
             id=uuid.uuid4(),
             singleton=True,
-            run_state=SystemRunState.NORMAL,
+            run_state=(
+                _cached_run_state.value
+                if isinstance(_cached_run_state, SystemRunState)
+                else _cached_run_state
+            ),
+            shutdown_reason=_cached_shutdown_reason,
             updated_at=datetime.now(UTC),
         )
         session.add(state)
         await session.flush()
+    else:
+        set_cached_run_state(SystemRunState(state.run_state), state.shutdown_reason)
     return state
 
 
@@ -46,11 +69,12 @@ async def trigger_emergency_shutdown(
     Blocks all non-owner operations and agent tool executions.
     """
     now = datetime.now(UTC)
-    state = await get_system_state(session)
+    state = await get_system_state(session, for_update=True)
     state.run_state = SystemRunState.EMERGENCY_SHUTDOWN
     state.shutdown_reason = reason
     state.updated_by = owner_id
     state.updated_at = now
+    set_cached_run_state(SystemRunState.EMERGENCY_SHUTDOWN, reason)
 
     logger.critical("emergency_shutdown_triggered", owner_id=str(owner_id), reason=reason)
 
@@ -79,7 +103,7 @@ async def override_system_state(
 ) -> SystemState:
     """Owner override to restore or adjust system run state."""
     now = datetime.now(UTC)
-    state = await get_system_state(session)
+    state = await get_system_state(session, for_update=True)
     previous_state = state.run_state
 
     state.run_state = target_state
@@ -89,6 +113,7 @@ async def override_system_state(
         state.shutdown_reason = reason
     state.updated_by = owner_id
     state.updated_at = now
+    set_cached_run_state(target_state, state.shutdown_reason)
 
     logger.info(
         "system_run_state_overridden",

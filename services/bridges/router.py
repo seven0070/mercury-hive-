@@ -6,7 +6,12 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from apps.api.dependencies import AuthenticatedOwner, get_current_owner, get_db
+from apps.api.dependencies import (
+    AuthenticatedOwner,
+    get_current_owner,
+    get_db,
+    verify_shutdown_state,
+)
 from domain.enums.tasks import BridgeStatus
 from domain.schemas.tasks import BridgeCreate, BridgeDecisionRequest, BridgeResponse
 from services.bridges.service import (
@@ -21,7 +26,11 @@ from services.bridges.service import (
 router = APIRouter(prefix="/bridges", tags=["bridges"])
 
 
-@router.post("", response_model=BridgeResponse)
+@router.post(
+    "",
+    response_model=BridgeResponse,
+    dependencies=[Depends(verify_shutdown_state(mutation=True))],
+)
 async def api_request_bridge(
     request: BridgeCreate,
     session: Annotated[AsyncSession, Depends(get_db)],
@@ -40,7 +49,11 @@ async def api_request_bridge(
         raise HTTPException(status_code=400, detail=e.message) from e
 
 
-@router.get("", response_model=list[BridgeResponse])
+@router.get(
+    "",
+    response_model=list[BridgeResponse],
+    dependencies=[Depends(verify_shutdown_state(mutation=False))],
+)
 async def api_list_bridges(
     session: Annotated[AsyncSession, Depends(get_db)],
     owner: Annotated[AuthenticatedOwner, Depends(get_current_owner)],
@@ -58,7 +71,11 @@ async def api_list_bridges(
     return [BridgeResponse.model_validate(b) for b in bridges]
 
 
-@router.get("/{bridge_id}", response_model=BridgeResponse)
+@router.get(
+    "/{bridge_id}",
+    response_model=BridgeResponse,
+    dependencies=[Depends(verify_shutdown_state(mutation=False))],
+)
 async def api_get_bridge(
     bridge_id: uuid.UUID,
     session: Annotated[AsyncSession, Depends(get_db)],
@@ -71,7 +88,11 @@ async def api_get_bridge(
     return BridgeResponse.model_validate(bridge)
 
 
-@router.post("/{bridge_id}/approve", response_model=BridgeResponse)
+@router.post(
+    "/{bridge_id}/approve",
+    response_model=BridgeResponse,
+    dependencies=[Depends(verify_shutdown_state(mutation=True))],
+)
 async def api_approve_bridge(
     bridge_id: uuid.UUID,
     request: BridgeDecisionRequest,
@@ -92,7 +113,11 @@ async def api_approve_bridge(
         raise HTTPException(status_code=400, detail=e.message) from e
 
 
-@router.post("/{bridge_id}/revoke", response_model=BridgeResponse)
+@router.post(
+    "/{bridge_id}/revoke",
+    response_model=BridgeResponse,
+    dependencies=[Depends(verify_shutdown_state(mutation=True))],
+)
 async def api_revoke_bridge(
     bridge_id: uuid.UUID,
     request: BridgeDecisionRequest,

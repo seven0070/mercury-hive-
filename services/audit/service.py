@@ -24,26 +24,40 @@ logger = structlog.get_logger()
 # Allowed audit event types
 ALLOWED_EVENT_TYPES = frozenset({"AUTH", "ACCESS", "SYSTEM", "GOVERNANCE", "SECURITY"})
 
-# Sensitive keys that must be redacted from audit payloads
-_REDACT_KEYS = frozenset(
-    {
-        "password",
-        "password_hash",
-        "token",
-        "refresh_token",
-        "access_token",
-        "secret",
-        "key",
-        "authorization",
-    }
-)
+# Sensitive key substrings that must be redacted from audit payloads
+_REDACT_SUBSTRINGS = ("key", "token", "secret", "password", "authorization", "api_key")
+
+# Metric counter keys that contain "tokens" but represent non-sensitive metrics
+_EXCLUDED_METRIC_KEYS = frozenset({"prompt_tokens", "completion_tokens", "total_tokens"})
+
+
+def _redact_value(val: object) -> object:
+    if isinstance(val, dict):
+        return _redact_payload(val)
+    if isinstance(val, list):
+        return [_redact_value(item) for item in val]
+    return val
 
 
 def _redact_payload(payload: dict | None) -> dict | None:
-    """Remove sensitive keys from audit payloads before storage."""
+    """Remove sensitive keys from audit payloads before storage.
+
+    Masks any key containing 'key', 'token', 'secret', 'password',
+    'authorization', 'api_key', while preserving non-sensitive metric counters
+    such as 'prompt_tokens', 'completion_tokens', and 'total_tokens'.
+    """
     if payload is None:
         return None
-    return {k: "[REDACTED]" if k.lower() in _REDACT_KEYS else v for k, v in payload.items()}
+    redacted: dict = {}
+    for k, v in payload.items():
+        k_lower = str(k).lower()
+        if k_lower in _EXCLUDED_METRIC_KEYS:
+            redacted[k] = _redact_value(v)
+        elif any(sub in k_lower for sub in _REDACT_SUBSTRINGS):
+            redacted[k] = "[REDACTED]"
+        else:
+            redacted[k] = _redact_value(v)
+    return redacted
 
 
 def _validate_event_type(event_type: str) -> str:
