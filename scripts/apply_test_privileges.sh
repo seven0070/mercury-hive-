@@ -57,8 +57,23 @@ GRANT UPDATE (status, approved_by, revoked_at, revocation_reason) ON cross_depar
 GRANT SELECT ON task_delegations TO mercury_test_runtime;
 GRANT INSERT (id, task_id, bridge_id, delegated_from_agent_id, delegated_to_agent_id, notes) ON task_delegations TO mercury_test_runtime;
 
+GRANT SELECT ON tool_definitions TO mercury_test_runtime;
+GRANT INSERT (id, name, description, risk_level, schema_definition, is_enabled, requires_approval) ON tool_definitions TO mercury_test_runtime;
+GRANT UPDATE (description, risk_level, schema_definition, is_enabled, requires_approval) ON tool_definitions TO mercury_test_runtime;
+
+GRANT SELECT ON tool_executions TO mercury_test_runtime;
+GRANT INSERT (id, tool_name, agent_id, task_id, status, parameters, result, error_message, execution_duration_ms) ON tool_executions TO mercury_test_runtime;
+
+GRANT SELECT ON agent_memories TO mercury_test_runtime;
+GRANT INSERT (id, agent_id, scope, scope_id, key, value, data_classification, version) ON agent_memories TO mercury_test_runtime;
+GRANT UPDATE (value, data_classification, version, updated_at) ON agent_memories TO mercury_test_runtime;
+
+GRANT SELECT ON rollback_artifacts TO mercury_test_runtime;
+GRANT INSERT (id, task_id, agent_id, tool_name, target_resource, previous_state, new_state, status) ON rollback_artifacts TO mercury_test_runtime;
+GRANT UPDATE (status, reverted_at, reverted_by) ON rollback_artifacts TO mercury_test_runtime;
+
 GRANT SELECT ON alembic_version TO mercury_test_runtime;
 GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO mercury_test_runtime;
 SQL
 
-echo "Test privileges applied (Phase 4)."
+echo "Test privileges applied (Phase 5)."

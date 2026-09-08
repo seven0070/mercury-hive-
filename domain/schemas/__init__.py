@@ -36,9 +36,20 @@ from domain.schemas.tasks import (
     TaskStatusTransition,
     TaskUpdate,
 )
+from domain.schemas.tools import (
+    AgentMemoryResponse,
+    AgentMemoryStore,
+    RollbackResponse,
+    ToolDefinitionCreate,
+    ToolDefinitionResponse,
+    ToolExecutionRequest,
+    ToolExecutionResponse,
+)
 
 __all__ = [
     "AgentCreate",
+    "AgentMemoryResponse",
+    "AgentMemoryStore",
     "AgentResponse",
     "AgentStatusChange",
     "AgentUpdate",
@@ -62,6 +73,7 @@ __all__ = [
     "PermissionGrantCreate",
     "PermissionGrantResponse",
     "RefreshRequest",
+    "RollbackResponse",
     "TaskCreate",
     "TaskDelegationCreate",
     "TaskDelegationResponse",
@@ -69,4 +81,8 @@ __all__ = [
     "TaskStatusTransition",
     "TaskUpdate",
     "TokenResponse",
+    "ToolDefinitionCreate",
+    "ToolDefinitionResponse",
+    "ToolExecutionRequest",
+    "ToolExecutionResponse",
 ]

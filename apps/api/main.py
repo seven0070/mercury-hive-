@@ -26,7 +26,10 @@ from services.bridges.router import router as bridge_router
 from services.constitution.loader import ConstitutionError, ConstitutionLoader
 from services.governance.router import router as governance_router
 from services.identity.router import router as auth_router
+from services.memory.router import router as memory_router
+from services.rollback.router import router as rollback_router
 from services.tasks.router import router as task_router
+from services.tools.router import router as tool_router
 
 logger = structlog.get_logger()
 
@@ -157,11 +160,14 @@ def create_app() -> FastAPI:
             "constitution_hash": app.state.constitution.sha256_hash[:12],
         }
 
-    # Auth, Governance, Agents, Bridges, & Tasks routes
+    # Auth, Governance, Agents, Bridges, Tasks, Tools, Memory, & Rollback routes
     app.include_router(auth_router)
     app.include_router(governance_router)
     app.include_router(agent_router)
     app.include_router(bridge_router)
     app.include_router(task_router)
+    app.include_router(tool_router)
+    app.include_router(memory_router)
+    app.include_router(rollback_router)
 
     return app

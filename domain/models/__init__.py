@@ -8,9 +8,16 @@ from domain.models.owner import Owner
 from domain.models.refresh_token import RefreshToken
 from domain.models.session import OwnerSession
 from domain.models.tasks import CrossDepartmentBridge, Task, TaskDelegation
+from domain.models.tools import (
+    AgentMemory,
+    RollbackArtifact,
+    ToolDefinition,
+    ToolExecution,
+)
 
 __all__ = [
     "Agent",
+    "AgentMemory",
     "Approval",
     "AuditEvent",
     "Base",
@@ -22,7 +29,10 @@ __all__ = [
     "OwnerSession",
     "PermissionGrant",
     "RefreshToken",
+    "RollbackArtifact",
     "SystemState",
     "Task",
     "TaskDelegation",
+    "ToolDefinition",
+    "ToolExecution",
 ]
