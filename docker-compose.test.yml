@@ -1,0 +1,66 @@
+services:
+  postgres-test:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: mercury_hive_test
+      POSTGRES_USER: mercury_test_admin
+      POSTGRES_PASSWORD: ${TEST_POSTGRES_ADMIN_PASSWORD:-test_admin_disposable_pw}
+      POSTGRES_RUNTIME_PASSWORD: ${TEST_POSTGRES_RUNTIME_PASSWORD:-test_runtime_disposable_pw}
+    volumes:
+      - postgres_test_data:/var/lib/postgresql/data
+      - ./scripts/init_test_roles.sh:/docker-entrypoint-initdb.d/01-init-roles.sh
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mercury_test_admin -d mercury_hive_test"]
+      interval: 3s
+      timeout: 2s
+      retries: 10
+
+  test-admin:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgresql+asyncpg://mercury_test_admin:${TEST_POSTGRES_ADMIN_PASSWORD:-test_admin_disposable_pw}@postgres-test:5432/mercury_hive_test
+      CONSTITUTION_PATH: /app/policies/constitution.yaml
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+    profiles: ["test-admin"]
+
+  test-privileges:
+    image: postgres:16-alpine
+    environment:
+      PGHOST: postgres-test
+      PGPORT: "5432"
+      PGDATABASE: mercury_hive_test
+      PGUSER: mercury_test_admin
+      PGPASSWORD: ${TEST_POSTGRES_ADMIN_PASSWORD:-test_admin_disposable_pw}
+    volumes:
+      - ./scripts/apply_test_privileges.sh:/run.sh:ro
+    entrypoint: ["sh", "/run.sh"]
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+    profiles: ["test-admin"]
+
+  tests:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgresql+asyncpg://mercury_test_runtime:${TEST_POSTGRES_RUNTIME_PASSWORD:-test_runtime_disposable_pw}@postgres-test:5432/mercury_hive_test
+      DATABASE_TEST_URL: postgresql+asyncpg://mercury_test_runtime:${TEST_POSTGRES_RUNTIME_PASSWORD:-test_runtime_disposable_pw}@postgres-test:5432/mercury_hive_test
+      DATABASE_TEST_ADMIN_URL: postgresql+asyncpg://mercury_test_admin:${TEST_POSTGRES_ADMIN_PASSWORD:-test_admin_disposable_pw}@postgres-test:5432/mercury_hive_test
+      DATABASE_TEST_RUNTIME_SYNC: postgresql://mercury_test_runtime:${TEST_POSTGRES_RUNTIME_PASSWORD:-test_runtime_disposable_pw}@postgres-test:5432/mercury_hive_test
+      JWT_SECRET_KEY: test-disposable-secret-key-32-chars-long
+      JWT_ALGORITHM: HS256
+      JWT_ISSUER: mercury-hive
+      JWT_AUDIENCE: mercury-hive-api
+      CONSTITUTION_PATH: /app/policies/constitution.yaml
+    command: ["pytest", "tests/", "-v", "--tb=short"]
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+
+volumes:
+  postgres_test_data:

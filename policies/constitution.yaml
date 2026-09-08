@@ -1,0 +1,35 @@
+# Mercury Hive Constitutional Rules
+# This file defines the immutable governance rules for the system.
+# Changes require: owner authorization, forward migration, new tests,
+# security review, version increment, hash update, and audit record.
+
+schema_version: 1
+policy_version: 1
+
+# === Mandatory Rules ===
+# Every rule must be true. The constitution loader rejects any weakening.
+rules:
+  owner_final_authority: true
+  deny_by_default: true
+  agents_cannot_modify_own_permissions: true
+  agents_cannot_modify_constitution: true
+  agents_cannot_delete_audit_logs: true
+  permanent_agent_creation_requires_authorization: true
+  high_risk_actions_require_approval: true
+  producer_cannot_be_sole_verifier: true
+  cross_department_access_requires_bridge: true
+  failed_outputs_must_be_preserved: true
+  emergency_shutdown_enabled: true
+  evolution_requires_testing: true
+  owner_override_cannot_be_disabled: true
+  external_release_requires_approval: true
+  sensitive_memory_requires_scoped_access: true
+  real_person_identity_requires_authorization: true
+
+# === Change Control Rules ===
+# All must be true. Prevents weakening governance.
+change_control:
+  owner_authorization_required: true
+  explicit_migration_required: true
+  automated_tests_required: true
+  agent_changes_allowed: false

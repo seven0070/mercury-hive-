@@ -1,0 +1,77 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: mercury_hive
+      POSTGRES_USER: mercury_admin
+      POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD}
+      POSTGRES_RUNTIME_PASSWORD: ${POSTGRES_RUNTIME_PASSWORD}
+    # No ports exposed — access via internal Docker network only
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init_db_roles.sh:/docker-entrypoint-initdb.d/01-init-roles.sh
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mercury_admin -d mercury_hive"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  admin:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgresql+asyncpg://mercury_admin:${POSTGRES_ADMIN_PASSWORD}@postgres:5432/mercury_hive
+      CONSTITUTION_PATH: /app/policies/constitution.yaml
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles: ["admin"]
+    # One-shot service for: alembic upgrade, bootstrap-owner
+    # Not a long-running service — invoked via `docker compose run --rm`
+
+  privileges:
+    image: postgres:16-alpine
+    environment:
+      PGHOST: postgres
+      PGPORT: "5432"
+      PGDATABASE: mercury_hive
+      PGUSER: mercury_admin
+      PGPASSWORD: ${POSTGRES_ADMIN_PASSWORD}
+    volumes:
+      - ./scripts/apply_runtime_privileges.sh:/run.sh:ro
+    entrypoint: ["sh", "/run.sh"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles: ["admin"]
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      # ONLY runtime credentials — no admin URL ever
+      DATABASE_URL: postgresql+asyncpg://mercury_runtime:${POSTGRES_RUNTIME_PASSWORD}@postgres:5432/mercury_hive
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      JWT_ALGORITHM: HS256
+      JWT_ISSUER: mercury-hive
+      JWT_AUDIENCE: mercury-hive-api
+      JWT_ACCESS_TOKEN_MINUTES: "5"
+      JWT_REFRESH_TOKEN_HOURS: "24"
+      JWT_SESSION_DAYS: "7"
+      CONSTITUTION_PATH: /app/policies/constitution.yaml
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+    user: "1000:1000"
+
+volumes:
+  postgres_data:
