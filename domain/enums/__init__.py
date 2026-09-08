@@ -6,6 +6,7 @@ from domain.enums.owner_status import OwnerStatus
 from domain.enums.roles import SystemRole
 from domain.enums.tasks import BridgeStatus, TaskPriority, TaskStatus
 from domain.enums.tools import MemoryScope, RollbackStatus, ToolExecutionStatus
+from domain.enums.tribe import SkillProficiency, SyncDirection, SyncStatus
 
 __all__ = [
     "AgentStatus",
@@ -22,6 +23,9 @@ __all__ = [
     "RiskLevel",
     "RollbackStatus",
     "SandboxVerdict",
+    "SkillProficiency",
+    "SyncDirection",
+    "SyncStatus",
     "SystemRole",
     "SystemRunState",
     "TaskPriority",

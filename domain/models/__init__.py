@@ -21,10 +21,12 @@ from domain.models.tools import (
     ToolDefinition,
     ToolExecution,
 )
+from domain.models.tribe import AgentSkill, TaskSyncMapping, TribeMapping
 
 __all__ = [
     "Agent",
     "AgentMemory",
+    "AgentSkill",
     "Approval",
     "AuditEvent",
     "Base",
@@ -46,6 +48,8 @@ __all__ = [
     "SystemState",
     "Task",
     "TaskDelegation",
+    "TaskSyncMapping",
     "ToolDefinition",
     "ToolExecution",
+    "TribeMapping",
 ]

@@ -32,6 +32,7 @@ from services.memory.router import router as memory_router
 from services.rollback.router import router as rollback_router
 from services.tasks.router import router as task_router
 from services.tools.router import router as tool_router
+from services.tribe.router import router as tribe_router
 
 logger = structlog.get_logger()
 
@@ -173,5 +174,6 @@ def create_app() -> FastAPI:
     app.include_router(rollback_router)
     app.include_router(judging_router)
     app.include_router(evolution_router)
+    app.include_router(tribe_router)
 
     return app

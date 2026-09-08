@@ -168,6 +168,27 @@ GRANT SELECT ON sandbox_runs TO mercury_runtime;
 GRANT INSERT (id, candidate_id, test_suite_name, baseline_score, candidate_score, metrics, verdict) ON sandbox_runs TO mercury_runtime;
 
 -- ============================================================
+-- tribe_mappings: Phase 8 squad & department mapping
+-- ============================================================
+GRANT SELECT ON tribe_mappings TO mercury_runtime;
+GRANT INSERT (id, department_id, tribe_name, squad_name, external_team_id, sync_status) ON tribe_mappings TO mercury_runtime;
+GRANT UPDATE (tribe_name, squad_name, external_team_id, sync_status, updated_at) ON tribe_mappings TO mercury_runtime;
+
+-- ============================================================
+-- agent_skills: Phase 8 capability matrix & certification
+-- ============================================================
+GRANT SELECT ON agent_skills TO mercury_runtime;
+GRANT INSERT (id, agent_id, skill_name, proficiency_level, is_verified, verified_by) ON agent_skills TO mercury_runtime;
+GRANT UPDATE (proficiency_level, is_verified, verified_by) ON agent_skills TO mercury_runtime;
+
+-- ============================================================
+-- task_sync_mappings: Phase 8 external task synchronization
+-- ============================================================
+GRANT SELECT ON task_sync_mappings TO mercury_runtime;
+GRANT INSERT (id, task_id, external_system, external_task_id, sync_direction, sync_status) ON task_sync_mappings TO mercury_runtime;
+GRANT UPDATE (sync_direction, sync_status, last_synced_at) ON task_sync_mappings TO mercury_runtime;
+
+-- ============================================================
 -- alembic_version: read-only for runtime
 -- ============================================================
 GRANT SELECT ON alembic_version TO mercury_runtime;
@@ -177,4 +198,4 @@ GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO mercury_runtime;
 
 SQL
 
-echo "Runtime privileges applied successfully (Phase 7)."
+echo "Runtime privileges applied successfully (Phase 8)."

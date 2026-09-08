@@ -64,12 +64,25 @@ from domain.schemas.tools import (
     ToolExecutionRequest,
     ToolExecutionResponse,
 )
+from domain.schemas.tribe import (
+    AgentSkillCreate,
+    AgentSkillResponse,
+    AgentSkillVerify,
+    ExternalTaskIngestRequest,
+    TaskSyncCreate,
+    TaskSyncResponse,
+    TribeMappingCreate,
+    TribeMappingResponse,
+)
 
 __all__ = [
     "AgentCreate",
     "AgentMemoryResponse",
     "AgentMemoryStore",
     "AgentResponse",
+    "AgentSkillCreate",
+    "AgentSkillResponse",
+    "AgentSkillVerify",
     "AgentStatusChange",
     "AgentUpdate",
     "ApprovalCreate",
@@ -87,6 +100,7 @@ __all__ = [
     "EmergencyShutdownResponse",
     "EvolutionCandidateCreate",
     "EvolutionCandidateResponse",
+    "ExternalTaskIngestRequest",
     "JudgingSessionCreate",
     "JudgingSessionResponse",
     "LoginRequest",
@@ -113,10 +127,14 @@ __all__ = [
     "TaskDelegationResponse",
     "TaskResponse",
     "TaskStatusTransition",
+    "TaskSyncCreate",
+    "TaskSyncResponse",
     "TaskUpdate",
     "TokenResponse",
     "ToolDefinitionCreate",
     "ToolDefinitionResponse",
     "ToolExecutionRequest",
     "ToolExecutionResponse",
+    "TribeMappingCreate",
+    "TribeMappingResponse",
 ]

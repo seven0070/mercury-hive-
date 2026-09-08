@@ -93,8 +93,20 @@ GRANT UPDATE (status, benchmark_results, shadow_traffic_percentage, approved_by,
 GRANT SELECT ON sandbox_runs TO mercury_test_runtime;
 GRANT INSERT (id, candidate_id, test_suite_name, baseline_score, candidate_score, metrics, verdict) ON sandbox_runs TO mercury_test_runtime;
 
+GRANT SELECT ON tribe_mappings TO mercury_test_runtime;
+GRANT INSERT (id, department_id, tribe_name, squad_name, external_team_id, sync_status) ON tribe_mappings TO mercury_test_runtime;
+GRANT UPDATE (tribe_name, squad_name, external_team_id, sync_status, updated_at) ON tribe_mappings TO mercury_test_runtime;
+
+GRANT SELECT ON agent_skills TO mercury_test_runtime;
+GRANT INSERT (id, agent_id, skill_name, proficiency_level, is_verified, verified_by) ON agent_skills TO mercury_test_runtime;
+GRANT UPDATE (proficiency_level, is_verified, verified_by) ON agent_skills TO mercury_test_runtime;
+
+GRANT SELECT ON task_sync_mappings TO mercury_test_runtime;
+GRANT INSERT (id, task_id, external_system, external_task_id, sync_direction, sync_status) ON task_sync_mappings TO mercury_test_runtime;
+GRANT UPDATE (sync_direction, sync_status, last_synced_at) ON task_sync_mappings TO mercury_test_runtime;
+
 GRANT SELECT ON alembic_version TO mercury_test_runtime;
 GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO mercury_test_runtime;
 SQL
 
-echo "Test privileges applied (Phase 7)."
+echo "Test privileges applied (Phase 8)."

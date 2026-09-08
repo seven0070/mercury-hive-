@@ -54,7 +54,7 @@ async def api_propose_candidate(
 async def api_list_candidates(
     session: Annotated[AsyncSession, Depends(get_db)],
     owner: Annotated[AuthenticatedOwner, Depends(get_current_owner)],
-    status: str | None = Query(default=None),
+    status: Annotated[str | None, Query()] = None,
 ) -> list[EvolutionCandidateResponse]:
     """List evolution candidates with optional status filter."""
     candidates = await list_candidates(session=session, status=status)
