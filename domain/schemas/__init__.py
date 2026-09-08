@@ -25,6 +25,16 @@ from domain.schemas.governance import (
     OwnerDashboardResponse,
     OwnerOverrideRequest,
 )
+from domain.schemas.judging import (
+    JudgingSessionCreate,
+    JudgingSessionResponse,
+    RubricCreate,
+    RubricResponse,
+    ScorecardResponse,
+    ScorecardSubmit,
+    SubmissionCreate,
+    SubmissionResponse,
+)
 from domain.schemas.tasks import (
     BridgeCreate,
     BridgeDecisionRequest,
@@ -66,6 +76,8 @@ __all__ = [
     "DepartmentResponse",
     "EmergencyShutdownRequest",
     "EmergencyShutdownResponse",
+    "JudgingSessionCreate",
+    "JudgingSessionResponse",
     "LoginRequest",
     "OwnerDashboardResponse",
     "OwnerOverrideRequest",
@@ -74,6 +86,12 @@ __all__ = [
     "PermissionGrantResponse",
     "RefreshRequest",
     "RollbackResponse",
+    "RubricCreate",
+    "RubricResponse",
+    "ScorecardResponse",
+    "ScorecardSubmit",
+    "SubmissionCreate",
+    "SubmissionResponse",
     "TaskCreate",
     "TaskDelegationCreate",
     "TaskDelegationResponse",

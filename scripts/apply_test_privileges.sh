@@ -72,8 +72,22 @@ GRANT SELECT ON rollback_artifacts TO mercury_test_runtime;
 GRANT INSERT (id, task_id, agent_id, tool_name, target_resource, previous_state, new_state, status) ON rollback_artifacts TO mercury_test_runtime;
 GRANT UPDATE (status, reverted_at, reverted_by) ON rollback_artifacts TO mercury_test_runtime;
 
+GRANT SELECT ON rubrics TO mercury_test_runtime;
+GRANT INSERT (id, name, version, description, criteria, minimum_passing_score, is_active) ON rubrics TO mercury_test_runtime;
+GRANT UPDATE (description, criteria, minimum_passing_score, is_active) ON rubrics TO mercury_test_runtime;
+
+GRANT SELECT ON evaluation_submissions TO mercury_test_runtime;
+GRANT INSERT (id, task_id, author_agent_id, title, deliverable_payload) ON evaluation_submissions TO mercury_test_runtime;
+
+GRANT SELECT ON judging_sessions TO mercury_test_runtime;
+GRANT INSERT (id, submission_id, rubric_id, status, required_judges, final_verdict, aggregate_score, consensus_notes) ON judging_sessions TO mercury_test_runtime;
+GRANT UPDATE (status, final_verdict, aggregate_score, consensus_notes, closed_at) ON judging_sessions TO mercury_test_runtime;
+
+GRANT SELECT ON judge_scorecards TO mercury_test_runtime;
+GRANT INSERT (id, session_id, judge_agent_id, scores, total_score, verdict, feedback, conflict_declared, conflict_reason) ON judge_scorecards TO mercury_test_runtime;
+
 GRANT SELECT ON alembic_version TO mercury_test_runtime;
 GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO mercury_test_runtime;
 SQL
 
-echo "Test privileges applied (Phase 5)."
+echo "Test privileges applied (Phase 6)."

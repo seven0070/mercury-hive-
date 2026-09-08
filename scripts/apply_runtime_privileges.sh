@@ -129,6 +129,32 @@ GRANT INSERT (id, task_id, agent_id, tool_name, target_resource, previous_state,
 GRANT UPDATE (status, reverted_at, reverted_by) ON rollback_artifacts TO mercury_runtime;
 
 -- ============================================================
+-- rubrics: Phase 6 grading rubrics
+-- ============================================================
+GRANT SELECT ON rubrics TO mercury_runtime;
+GRANT INSERT (id, name, version, description, criteria, minimum_passing_score, is_active) ON rubrics TO mercury_runtime;
+GRANT UPDATE (description, criteria, minimum_passing_score, is_active) ON rubrics TO mercury_runtime;
+
+-- ============================================================
+-- evaluation_submissions: Phase 6 deliverable submissions
+-- ============================================================
+GRANT SELECT ON evaluation_submissions TO mercury_runtime;
+GRANT INSERT (id, task_id, author_agent_id, title, deliverable_payload) ON evaluation_submissions TO mercury_runtime;
+
+-- ============================================================
+-- judging_sessions: Phase 6 council sessions
+-- ============================================================
+GRANT SELECT ON judging_sessions TO mercury_runtime;
+GRANT INSERT (id, submission_id, rubric_id, status, required_judges, final_verdict, aggregate_score, consensus_notes) ON judging_sessions TO mercury_runtime;
+GRANT UPDATE (status, final_verdict, aggregate_score, consensus_notes, closed_at) ON judging_sessions TO mercury_runtime;
+
+-- ============================================================
+-- judge_scorecards: Phase 6 independent judge grading
+-- ============================================================
+GRANT SELECT ON judge_scorecards TO mercury_runtime;
+GRANT INSERT (id, session_id, judge_agent_id, scores, total_score, verdict, feedback, conflict_declared, conflict_reason) ON judge_scorecards TO mercury_runtime;
+
+-- ============================================================
 -- alembic_version: read-only for runtime
 -- ============================================================
 GRANT SELECT ON alembic_version TO mercury_runtime;
@@ -138,4 +164,4 @@ GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO mercury_runtime;
 
 SQL
 
-echo "Runtime privileges applied successfully (Phase 5)."
+echo "Runtime privileges applied successfully (Phase 6)."
