@@ -1,27 +1,28 @@
-"""Audit service with dual-transaction support.
+"""Audit service with dual-transaction support and Phase 2 write-through DB function.
 
 Two modes:
-1. log_audit_event() — within current transaction. For successful operations.
-2. log_audit_event_independent() — separate transaction. For failed operations
-   where the request transaction rolls back.
+1. log_audit_event() — within current transaction via fn_record_audit_event.
+2. log_audit_event_independent() — separate transaction via fn_record_audit_event.
+   For failed operations where the request transaction rolls back.
 
-Phase 1 limitation: runtime role has INSERT access to audit_events.
-A compromised auth service could forge audit records.
-This is documented as non-trustworthy.
-Phase 2 adds: write-through DB function, separate audit-write/read roles.
+Phase 2 Hardening: Direct INSERT on audit_events is revoked from runtime.
+All audit record writes strictly pass through the PostgreSQL SECURITY DEFINER
+function `fn_record_audit_event`.
 """
+
+import json
+import uuid
 
 import structlog
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, create_async_engine
 
-from domain.models.audit_event import AuditEvent
 from domain.schemas.audit import AuditEventCreate
 
 logger = structlog.get_logger()
 
-# Constrain event types in Phase 1
-ALLOWED_EVENT_TYPES = frozenset({"AUTH", "ACCESS", "SYSTEM"})
+# Allowed audit event types
+ALLOWED_EVENT_TYPES = frozenset({"AUTH", "ACCESS", "SYSTEM", "GOVERNANCE", "SECURITY"})
 
 # Sensitive keys that must be redacted from audit payloads
 _REDACT_KEYS = frozenset(
@@ -57,34 +58,52 @@ def _validate_event_type(event_type: str) -> str:
 async def log_audit_event(
     session: AsyncSession,
     event: AuditEventCreate,
-) -> None:
-    """Log audit event within the current transaction.
+) -> uuid.UUID | None:
+    """Log audit event within the current transaction using fn_record_audit_event.
 
     Use for successful operations where the transaction commits.
-    Payload is redacted before storage.
     """
     data = event.model_dump()
     data["event_type"] = _validate_event_type(data["event_type"])
-    data["payload"] = _redact_payload(data.get("payload"))
-    audit = AuditEvent(**data)
-    session.add(audit)
+    redacted = _redact_payload(data.get("payload"))
+    payload_json = json.dumps(redacted) if redacted else None
+
+    result = await session.execute(
+        text(
+            "SELECT fn_record_audit_event("
+            ":event_type, :actor_id, :actor_role, :target_type, :target_id, "
+            ":action, :decision, :reason, :payload::jsonb, :correlation_id)"
+        ),
+        {
+            "event_type": data["event_type"],
+            "actor_id": str(data["actor_id"]) if data.get("actor_id") else None,
+            "actor_role": data.get("actor_role"),
+            "target_type": data.get("target_type"),
+            "target_id": str(data["target_id"]) if data.get("target_id") else None,
+            "action": data["action"],
+            "decision": data.get("decision"),
+            "reason": data.get("reason"),
+            "payload": payload_json,
+            "correlation_id": str(data["correlation_id"]) if data.get("correlation_id") else None,
+        },
+    )
+    return result.scalar_one_or_none()
 
 
 async def log_audit_event_independent(
     engine_or_url: AsyncEngine | str,
     event: AuditEventCreate,
-) -> None:
-    """Log audit event in a separate short-lived transaction.
+) -> uuid.UUID | None:
+    """Log audit event in a separate short-lived transaction via fn_record_audit_event.
 
     Use for failed operations where the request transaction rolls back.
     Ensures AUTH_LOGIN_FAILED, AUTH_REFRESH_REPLAY etc. are persisted
     even when the main request raises an HTTP error.
-
-    Accepts a persistent AsyncEngine to avoid connection churn.
     """
     data = event.model_dump()
     data["event_type"] = _validate_event_type(data["event_type"])
-    data["payload"] = _redact_payload(data.get("payload"))
+    redacted = _redact_payload(data.get("payload"))
+    payload_json = json.dumps(redacted) if redacted else None
 
     should_dispose = False
     if isinstance(engine_or_url, str):
@@ -93,16 +112,14 @@ async def log_audit_event_independent(
     else:
         engine = engine_or_url
 
+    audit_id: uuid.UUID | None = None
     try:
         async with engine.begin() as conn:
-            await conn.execute(
+            result = await conn.execute(
                 text(
-                    "INSERT INTO audit_events "
-                    "(id, event_type, actor_id, actor_role, target_type, target_id, "
-                    "action, decision, reason, payload, correlation_id) "
-                    "VALUES (gen_random_uuid(), :event_type, :actor_id, :actor_role, "
-                    ":target_type, :target_id, :action, :decision, :reason, "
-                    ":payload::jsonb, :correlation_id)"
+                    "SELECT fn_record_audit_event("
+                    ":event_type, :actor_id, :actor_role, :target_type, :target_id, "
+                    ":action, :decision, :reason, :payload::jsonb, :correlation_id)"
                 ),
                 {
                     "event_type": data["event_type"],
@@ -113,12 +130,13 @@ async def log_audit_event_independent(
                     "action": data["action"],
                     "decision": data.get("decision"),
                     "reason": data.get("reason"),
-                    "payload": None,  # Phase 1: skip complex payload serialization
+                    "payload": payload_json,
                     "correlation_id": str(data["correlation_id"])
                     if data.get("correlation_id")
                     else None,
                 },
             )
+            audit_id = result.scalar_one_or_none()
     except Exception:
         # Audit failure must not crash the application
         logger.warning(
@@ -129,3 +147,5 @@ async def log_audit_event_independent(
     finally:
         if should_dispose:
             await engine.dispose()
+
+    return audit_id
